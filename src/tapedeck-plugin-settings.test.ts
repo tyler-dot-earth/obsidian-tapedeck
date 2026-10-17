@@ -105,6 +105,11 @@ describe('Tapedeck plugin settings', () => {
 		),
 	)
 
+	it('keeps the machine name by default, and can turn it off', () => {
+		assert.isTrue(resolveTapedeckSettings({ importFolder: 'Agents' }).includeMachine)
+		assert.isFalse(resolveTapedeckSettings({ includeMachine: false }).includeMachine)
+	})
+
 	it('imports freeze-frames by default, with no size limit, for old settings too', () => {
 		const resolved = resolveTapedeckSettings({ importFolder: 'Agents' })
 		assert.isTrue(resolved.importImages)

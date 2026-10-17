@@ -89,6 +89,12 @@ const redactionSettings: SettingDefinition[] = [
 		desc: 'Basic patterns for keys, tokens, and secrets become [REDACTED], which is not a guarantee.',
 		control: { type: 'toggle', key: 'redactSecrets' },
 	},
+	{
+		name: 'Machine name',
+		desc: "Add this computer's name as the machine property in each note.",
+		aliases: ['hostname', 'computer name'],
+		control: { type: 'toggle', key: 'includeMachine' },
+	},
 ]
 
 /** One sentence on what a shelf's auto-import does, or that it is off. */

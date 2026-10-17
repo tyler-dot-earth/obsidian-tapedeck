@@ -112,7 +112,7 @@ type: transcript
 harness: claude-code
 model: 'claude-sonnet-4-5'
 session_id: '11111111-2222-4333-8444-555555555555'
-machine: 'my-laptop'
+machine: 'tape-deck'
 cwd: '~/projects/mixtape'
 resume: 'cd "~/projects/mixtape" && claude --resume 11111111-…'
 date: 2026-01-15T09:00:01
@@ -159,7 +159,7 @@ Each section is its own card.
 - **⏰ Auto-import**: a schedule per shelf, off by default (see Auto-import).
 - **🏷️ Notes**: import folder, filename pattern (`{date} {time} {harness} {session} {title}`), raw or summary style, fold tool calls, tool output (full, truncated, none), truncate length, include thinking.
 - **⏸️ Freeze-frames**: import images (on by default) and a size limit in MB (0, the default, means no limit). Bigger images get a note instead.
-- **✂️ Redaction**: home folder as `~`, and mask secrets (API keys, GitHub and Slack tokens, AWS keys, JWTs, bearer headers, private keys, `key=value` secrets). These are simple patterns. Read a note before you share it.
+- **✂️ Redaction**: home folder as `~`, and mask secrets (API keys, GitHub and Slack tokens, AWS keys, JWTs, bearer headers, private keys, `key=value` secrets). These are simple patterns. Read a note before you share it. **Machine name** (on by default) adds the computer's name as the `machine` property; turn it off to leave the property out.
 
 Summary style keeps what you and the agent said and replaces tool callouts with one line per turn, like `📼 3 tool calls: Read, Edit, Bash`.
 

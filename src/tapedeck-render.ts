@@ -19,7 +19,8 @@ export interface RenderOptions {
 	readonly truncateLines: number
 	readonly includeThinking: boolean
 	readonly noteStyle: NoteStyle
-	readonly machine: string
+	/** Computer name for the `machine` property; undefined leaves the property out. */
+	readonly machine: string | undefined
 	readonly resume: string
 	readonly importedAt: Date
 	/** Home directory to rewrite as `~`. Undefined leaves paths alone. */
@@ -194,7 +195,7 @@ const frontmatter = (transcript: Transcript, options: RenderOptions): string => 
 		`harness: ${transcript.harness}`,
 		`model:${yamlString(transcript.model)}`,
 		`session_id:${yamlString(transcript.sessionId)}`,
-		`machine:${yamlString(options.machine)}`,
+		...(options.machine === undefined ? [] : [`machine:${yamlString(options.machine)}`]),
 		`cwd:${yamlString(transcript.cwd)}`,
 		`resume:${yamlString(options.resume)}`,
 		`date:${started === undefined ? '' : ` ${localDateTime(started)}`}`,

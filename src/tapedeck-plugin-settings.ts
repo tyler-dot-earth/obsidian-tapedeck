@@ -31,6 +31,7 @@ export const TapedeckPluginSettings = Schema.Struct({
 	noteStyle: Schema.optionalKey(Schema.Literals(['raw', 'summary'])),
 	redactHomePaths: Schema.optionalKey(Schema.Boolean),
 	redactSecrets: Schema.optionalKey(Schema.Boolean),
+	includeMachine: Schema.optionalKey(Schema.Boolean),
 	importImages: Schema.optionalKey(Schema.Boolean),
 	maxImageMB: Schema.optionalKey(Schema.Number),
 })
@@ -67,6 +68,7 @@ export const tapedeckDefaults: ResolvedTapedeckSettings = {
 	noteStyle: 'raw',
 	redactHomePaths: true,
 	redactSecrets: true,
+	includeMachine: true,
 	importImages: true,
 	maxImageMB: 0,
 }
@@ -81,6 +83,7 @@ export const tapedeckSettingKeys: ReadonlyArray<TapedeckSettingKey> = [
 	'noteStyle',
 	'redactHomePaths',
 	'redactSecrets',
+	'includeMachine',
 	'importImages',
 	'maxImageMB',
 ]

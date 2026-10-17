@@ -180,7 +180,7 @@ export class TapedeckImporter {
 			truncateLines: settings.truncateLines,
 			includeThinking: settings.includeThinking,
 			noteStyle: settings.noteStyle,
-			machine: hostname(),
+			machine: settings.includeMachine ? hostname() : undefined,
 			resume: sourceFor(transcript.harness).resumeCommand(transcript),
 			importedAt: new Date(),
 			redactHome: settings.redactHomePaths ? homedir() : undefined,

@@ -52,6 +52,12 @@ describe('renderTranscriptNote', () => {
 		)
 	})
 
+	it('leaves out the machine property when it is turned off', () => {
+		const anonymous = renderTranscriptNote(transcript, { ...options, machine: undefined })
+		assert.notInclude(anonymous, 'machine:')
+		assert.include(anonymous, 'session_id: "11111111-2222-4333-8444-555555555555"\ncwd:')
+	})
+
 	it('labels the note as a tape', () => {
 		assert.include(note, '# 📼 Fix greeting')
 	})
