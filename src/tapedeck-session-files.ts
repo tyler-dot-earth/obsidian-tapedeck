@@ -13,8 +13,10 @@ import type { TranscriptSource } from '#/src/tapedeck-transcript'
 /** One session file on disk. */
 export interface SessionFile {
 	readonly source: TranscriptSource
+	readonly shelf: TapeShelf
 	readonly path: string
 	readonly modifiedAt: Date
+	readonly size: number
 }
 
 /** Whether a shelf's folder exists right now. Missing shelves are shown as unavailable. */
@@ -47,9 +49,10 @@ const walk = async (directory: string, depth: number): Promise<Array<string>> =>
 /** Enough of the file for `detectSource`, which looks at the first lines only. */
 const headBytes = 200_000
 
-const readHead = async (path: string): Promise<string> => {
+/** First `bytes` of a file as UTF-8. A line cut off at the end simply fails to decode. */
+export const readHead = async (path: string, bytes: number = headBytes): Promise<string> => {
 	const handle = await open(path, 'r')
-	const read = await handle.read(Buffer.alloc(headBytes), 0, headBytes, 0).catch(() => undefined)
+	const read = await handle.read(Buffer.alloc(bytes), 0, bytes, 0).catch(() => undefined)
 	await handle.close()
 
 	return read === undefined ? '' : read.buffer.subarray(0, read.bytesRead).toString('utf8')
@@ -100,7 +103,9 @@ const sessionFile = async (
 
 	const modified = await stat(path).catch(() => undefined)
 
-	return modified === undefined ? [] : [{ source, path, modifiedAt: modified.mtime }]
+	return modified === undefined
+		? []
+		: [{ source, shelf, path, modifiedAt: modified.mtime, size: modified.size }]
 }
 
 const listShelf = async (shelf: TapeShelf, home: string): Promise<Array<SessionFile>> => {

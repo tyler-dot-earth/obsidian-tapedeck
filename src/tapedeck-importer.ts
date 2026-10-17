@@ -60,6 +60,24 @@ export class TapedeckImporter {
 		return Option.getOrUndefined(Schema.decodeUnknownOption(TranscriptFrontmatter)(frontmatter))
 	}
 
+	/**
+	 * Checks whether a session already has a note. Reads every note's frontmatter once, from the
+	 * metadata cache, so the picker can ask about thousands of tapes cheaply.
+	 */
+	importedSessions(): (harness: Harness, sessionId: string) => boolean {
+		const keys = new Set(
+			this.app.vault.getMarkdownFiles().flatMap((file) => {
+				const frontmatter = this.transcriptFrontmatter(file)
+
+				return frontmatter === undefined
+					? []
+					: [`${frontmatter.harness}\u0000${frontmatter.session_id}`]
+			}),
+		)
+
+		return (harness, sessionId) => keys.has(`${harness}\u0000${sessionId}`)
+	}
+
 	/** Existing note for a session, so imports update instead of duplicating. */
 	findNote(harness: Harness, sessionId: string): TFile | undefined {
 		return this.app.vault.getMarkdownFiles().find((file) => {
