@@ -104,4 +104,11 @@ describe('Tapedeck plugin settings', () => {
 			),
 		),
 	)
+
+	it('imports freeze-frames by default, with no size limit, for old settings too', () => {
+		const resolved = resolveTapedeckSettings({ importFolder: 'Agents' })
+		assert.isTrue(resolved.importImages)
+		assert.strictEqual(resolved.maxImageMB, 0)
+		assert.deepStrictEqual(withTapedeckSetting({}, 'importImages', false), { importImages: false })
+	})
 })

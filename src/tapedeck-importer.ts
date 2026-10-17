@@ -6,6 +6,7 @@ import { type App, normalizePath, TFile } from 'obsidian'
 
 import type { TapedeckParseError } from '#/src/tapedeck-errors'
 import { transcriptFilename } from '#/src/tapedeck-filename'
+import { resolveImages } from '#/src/tapedeck-image-import'
 import type { ResolvedTapedeckSettings } from '#/src/tapedeck-plugin-settings'
 import { type PreviousNote, renderTranscriptNote } from '#/src/tapedeck-render'
 import { listSessionFiles, readSessionFile } from '#/src/tapedeck-session-files'
@@ -88,9 +89,17 @@ export class TapedeckImporter {
 	}
 
 	/** Writes a transcript note, updating the existing note for the same session. */
-	async writeTranscript(transcript: Transcript): Promise<ImportOutcome> {
+	async writeTranscript(parsed: Transcript): Promise<ImportOutcome> {
 		const settings = this.settings()
-		const existing = this.findNote(transcript.harness, transcript.sessionId)
+		const existing = this.findNote(parsed.harness, parsed.sessionId)
+		const notePath = existing?.path ?? (await this.freePath(parsed))
+
+		const transcript = await resolveImages(parsed, {
+			enabled: settings.importImages,
+			maxBytes: Math.max(0, settings.maxImageMB) * 1024 * 1024,
+			sessionId: parsed.sessionId,
+			save: (name, bytes) => this.saveAttachment(name, bytes, notePath),
+		})
 
 		const markdown = renderTranscriptNote(transcript, {
 			foldToolCalls: settings.foldToolCalls,
@@ -112,7 +121,7 @@ export class TapedeckImporter {
 			return { file: existing, transcript, updated: true }
 		}
 
-		const file = await this.app.vault.create(await this.freePath(transcript), markdown)
+		const file = await this.app.vault.create(notePath, markdown)
 
 		return { file, transcript, updated: false }
 	}
@@ -167,6 +176,23 @@ export class TapedeckImporter {
 		}
 
 		return this.importFile(match.path, source)
+	}
+
+	/**
+	 * Saves an image where Obsidian's attachment setting says, for the note at `notePath`. The name
+	 * is deterministic, so when a file of that name is already in the attachment folder (an earlier
+	 * import) it is reused rather than saved again as `name 1.png`. Returns the embed.
+	 */
+	private async saveAttachment(name: string, bytes: Uint8Array, notePath: string): Promise<string> {
+		const available = await this.app.fileManager.getAvailablePathForAttachment(name, notePath)
+		const slash = available.lastIndexOf('/')
+		const wanted = normalizePath(slash === -1 ? name : `${available.slice(0, slash)}/${name}`)
+
+		const file =
+			this.app.vault.getFileByPath(wanted) ??
+			(await this.app.vault.createBinary(wanted, Uint8Array.from(bytes).buffer))
+
+		return `!${this.app.fileManager.generateMarkdownLink(file, notePath)}`
 	}
 
 	private previousNote(file: TFile | undefined): PreviousNote {

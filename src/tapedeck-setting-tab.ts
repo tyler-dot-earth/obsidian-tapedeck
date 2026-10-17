@@ -74,6 +74,21 @@ export class TapedeckSettingTab extends PluginSettingTab {
 				control: { type: 'toggle', key: 'includeThinking' },
 			},
 			{
+				name: '⏸️ Freeze-frames',
+				desc: 'Images pasted into a session or returned by a tool. They are saved to your attachment folder (Settings → Files and links) and embedded where they appeared in the turn.',
+				aliases: ['images', 'screenshots', 'attachments'],
+			},
+			{
+				name: 'Import freeze-frames',
+				desc: 'Save images from tapes into the vault. When off, a short note marks where each image was.',
+				control: { type: 'toggle', key: 'importImages' },
+			},
+			{
+				name: 'Freeze-frame size limit (MB)',
+				desc: 'Skip images bigger than this and leave a note instead. 0 means no limit.',
+				control: { type: 'number', key: 'maxImageMB', placeholder: '0' },
+			},
+			{
 				name: '✂️ Redaction',
 				desc: 'Applied to the whole note at import. Basic patterns, not a guarantee.',
 			},
