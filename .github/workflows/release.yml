@@ -22,10 +22,20 @@ jobs:
           node-version: '24'
           cache: pnpm
 
-      - name: Build plugin
+      - name: Check the tag matches manifest.json
         run: |
-          pnpm install
-          pnpm build
+          tag="${GITHUB_REF#refs/tags/}"
+          version="$(node -p "require('./manifest.json').version")"
+
+          if [ "$tag" != "$version" ]; then
+            echo "Tag $tag does not match manifest.json version $version (Obsidian expects the bare version, no v prefix)."
+            exit 1
+          fi
+
+      - name: Check and build plugin
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm check
 
       - name: Generate artifact attestation
         uses: actions/attest@v4
