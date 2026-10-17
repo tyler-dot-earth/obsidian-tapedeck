@@ -4,6 +4,7 @@ import { basename } from 'node:path'
 import { Effect, Option, Result, Schema } from 'effect'
 import { type App, normalizePath, TFile } from 'obsidian'
 
+import { CodexThreadNames } from '#/src/tapedeck-codex-names'
 import type { TapedeckParseError } from '#/src/tapedeck-errors'
 import { parseTimestamp, transcriptFilename } from '#/src/tapedeck-filename'
 import { resolveImages } from '#/src/tapedeck-image-import'
@@ -12,6 +13,7 @@ import { type PreviousNote, renderTranscriptNote } from '#/src/tapedeck-render'
 import { listSessionFiles, readSessionFile } from '#/src/tapedeck-session-files'
 import { detectSource, sourceFor } from '#/src/tapedeck-sources'
 import type { ImportedNote, NoteLookup } from '#/src/tapedeck-tape-list'
+import { clampTitle, titleFields } from '#/src/tapedeck-tape-title'
 import type { Harness, Transcript, TranscriptSource } from '#/src/tapedeck-transcript'
 
 /** Frontmatter Tapedeck reads back from notes it wrote. */
@@ -51,14 +53,39 @@ export const parseSession = (text: string, source: TranscriptSource | undefined)
 	return chosen === undefined ? Result.fail('unknown-format') : chosen.parse(text)
 }
 
+/** Parses session text, throwing a readable error when it cannot. */
+const parseOrThrow = (
+	text: string,
+	source: TranscriptSource | undefined,
+	name: string,
+): Transcript => {
+	const parsed = parseSession(text, source)
+
+	if (Result.isFailure(parsed)) {
+		throw new Error(
+			parsed.failure === 'unknown-format'
+				? `${name} does not look like a Claude Code, Codex, or Pi session`
+				: `${name}: ${parsed.failure.message}`,
+		)
+	}
+
+	return parsed.success
+}
+
 /** Vault side of an import: find, create, or update transcript notes. */
 export class TapedeckImporter {
 	private readonly app: App
 	private readonly settings: () => ResolvedTapedeckSettings
+	private readonly threadNames: CodexThreadNames
 
-	constructor(app: App, settings: () => ResolvedTapedeckSettings) {
+	constructor(
+		app: App,
+		settings: () => ResolvedTapedeckSettings,
+		threadNames: CodexThreadNames = new CodexThreadNames(),
+	) {
 		this.app = app
 		this.settings = settings
+		this.threadNames = threadNames
 	}
 
 	/** Frontmatter of a Tapedeck note, if the file is one. */
@@ -147,8 +174,23 @@ export class TapedeckImporter {
 	/** Reads, parses, and writes one session file. */
 	async importFile(path: string, source: TranscriptSource | undefined): Promise<ImportOutcome> {
 		const text = await Effect.runPromise(readSessionFile(path))
+		const transcript = parseOrThrow(text, source, basename(path))
 
-		return this.importText(text, source, basename(path))
+		return this.writeTranscript(await this.withThreadName(path, transcript))
+	}
+
+	/** A Codex transcript titled with its thread name, when Codex has one. */
+	private async withThreadName(path: string, transcript: Transcript): Promise<Transcript> {
+		if (transcript.harness !== 'codex') {
+			return transcript
+		}
+
+		await this.threadNames.load(path)
+		const name = this.threadNames.get(path, transcript.sessionId)
+
+		return name === undefined
+			? transcript
+			: { ...transcript, ...titleFields({ title: clampTitle(name), source: 'name' }) }
 	}
 
 	/** Parses and writes session text. Throws a readable error when it cannot. */
@@ -157,17 +199,7 @@ export class TapedeckImporter {
 		source: TranscriptSource | undefined,
 		name: string,
 	): Promise<ImportOutcome> {
-		const parsed = parseSession(text, source)
-
-		if (Result.isFailure(parsed)) {
-			throw new Error(
-				parsed.failure === 'unknown-format'
-					? `${name} does not look like a Claude Code, Codex, or Pi session`
-					: `${name}: ${parsed.failure.message}`,
-			)
-		}
-
-		return this.writeTranscript(parsed.success)
+		return this.writeTranscript(parseOrThrow(text, source, name))
 	}
 
 	/** Finds the session file for a note by its `session_id` and imports it again. */

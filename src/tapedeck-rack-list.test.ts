@@ -18,6 +18,7 @@ const row = (path: string, overrides: Partial<TapeRow>): TapeRow => ({
 	modifiedAt: new Date('2026-01-15T09:00:00.000Z'),
 	project: 'demo',
 	title: 'Make the greeting say hello world',
+	kind: 'session',
 	sessionId: undefined,
 	state: 'new',
 	notePath: undefined,

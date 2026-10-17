@@ -16,11 +16,22 @@ export interface TapeRow {
 	readonly modifiedAt: Date
 	readonly project: string | undefined
 	readonly title: string | undefined
+	/** What the tape is, once read; subagent threads and empty files are left out of lists. */
+	readonly kind: TapeKind | undefined
 	readonly sessionId: string | undefined
 	readonly state: TapeState
 	/** Vault path of the tape's note, when it has one. */
 	readonly notePath: string | undefined
 }
+
+/**
+ * What a tape is: a `session` you ran, a `subagent` thread an agent started, an `empty` file with
+ * no messages, or `unreadable`. Lists leave out subagent threads and empty files.
+ */
+export type TapeKind = 'session' | 'subagent' | 'empty' | 'unreadable'
+
+/** Whether a tape belongs in the picker and rack lists. Unread tapes are listed until read. */
+export const isListed = (row: TapeRow): boolean => row.kind !== 'subagent' && row.kind !== 'empty'
 
 /**
  * Where a tape stands against the vault: `unknown` until its session id is known, `new` with no
@@ -94,7 +105,8 @@ const encodeLikeFolder = (path: string): string => path.replace(/[^A-Za-z0-9]/g,
 /**
  * Project name guessed from a Claude Code (`-home-me-code-app`) or Pi (`--home-me-code-app--`)
  * project folder, used until the session's own cwd is read. The encoding is lossy, so this only
- * strips the encoded home folder: `code-app` rather than a guess at where the dashes were.
+ * strips the encoded home folder: `code-app` rather than a guess at where the dashes were. A hidden
+ * folder (`~/.work/app`, encoded `--work-app`) loses its leading dash too.
  */
 export const projectFromFolder = (folder: string, home: string): string | undefined => {
 	const trimmed = folder.replace(/^-+|-+$/g, '')
@@ -106,7 +118,7 @@ export const projectFromFolder = (folder: string, home: string): string | undefi
 
 	const rest =
 		encodedHome !== '' && trimmed.startsWith(`${encodedHome}-`)
-			? trimmed.slice(encodedHome.length + 1)
+			? trimmed.slice(encodedHome.length + 1).replace(/^-+/, '')
 			: trimmed
 
 	return rest === '' ? undefined : rest
@@ -121,7 +133,7 @@ export const tapeSearchText = (row: TapeRow): string =>
 	[row.agent, row.shelf, row.project ?? '', row.title ?? '', tapeWhen(row)].join(' ').toLowerCase()
 
 /**
- * Rows matching every word of the query, in their original (newest first) order. Words match
+ * Listed rows matching every word of the query, in their original (newest first) order. Words match
  * anywhere, case-insensitively, so `demo 2026-01` finds January tapes of the demo project.
  */
 export const filterTapes = (rows: ReadonlyArray<TapeRow>, query: string): Array<TapeRow> => {
@@ -130,11 +142,13 @@ export const filterTapes = (rows: ReadonlyArray<TapeRow>, query: string): Array<
 		.split(/\s+/)
 		.filter((word) => word !== '')
 
+	const listed = rows.filter(isListed)
+
 	if (words.length === 0) {
-		return [...rows]
+		return listed
 	}
 
-	return rows.filter((row) => {
+	return listed.filter((row) => {
 		const text = tapeSearchText(row)
 
 		return words.every((word) => text.includes(word))

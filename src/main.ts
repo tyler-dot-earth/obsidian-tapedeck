@@ -7,6 +7,7 @@ import {
 import { Effect, Layer, Logger, type ManagedRuntime } from 'effect'
 import { Notice, Plugin } from 'obsidian'
 
+import { CodexThreadNames } from '#/src/tapedeck-codex-names'
 import { mapWithLimit } from '#/src/tapedeck-concurrency'
 import { tapedeckErrorMessage } from '#/src/tapedeck-errors'
 import { TapedeckImporter, type ImportOutcome } from '#/src/tapedeck-importer'
@@ -32,9 +33,12 @@ const importConcurrency = 4
 export default class TapedeckPlugin extends Plugin {
 	override settings: TapedeckPluginSettings = defaultTapedeckPluginSettings
 	private runtime: ManagedRuntime.ManagedRuntime<PluginDataStore, never> | undefined
-	private readonly tapeInfo = new TapeInfoCache()
-	private readonly importer = new TapedeckImporter(this.app, () =>
-		resolveTapedeckSettings(this.settings),
+	private readonly threadNames = new CodexThreadNames()
+	private readonly tapeInfo = new TapeInfoCache(this.threadNames)
+	private readonly importer = new TapedeckImporter(
+		this.app,
+		() => resolveTapedeckSettings(this.settings),
+		this.threadNames,
 	)
 
 	override async onload(): Promise<void> {
@@ -97,7 +101,10 @@ export default class TapedeckPlugin extends Plugin {
 	private async listShelfTapes(): Promise<ReadonlyArray<SessionFile>> {
 		const { tapeShelves } = resolveTapedeckSettings(this.settings)
 
-		return Effect.runPromise(listSessionFiles(tapeShelves)).catch(() => [])
+		const files = await Effect.runPromise(listSessionFiles(tapeShelves)).catch(() => [])
+		await this.tapeInfo.prepare(files).catch(() => undefined)
+
+		return files
 	}
 
 	private async openNote(path: string): Promise<void> {
@@ -190,6 +197,7 @@ export default class TapedeckPlugin extends Plugin {
 
 	private async pickTapes(shelves: ReadonlyArray<TapeShelf>, where: string): Promise<void> {
 		const files = await Effect.runPromise(listSessionFiles(shelves)).catch(() => [])
+		await this.tapeInfo.prepare(files).catch(() => undefined)
 
 		if (files.length === 0) {
 			new Notice(`📺 Tapedeck: no tapes found on ${where} (check Tape shelves in settings).`)

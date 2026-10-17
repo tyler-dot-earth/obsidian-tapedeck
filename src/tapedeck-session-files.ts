@@ -59,6 +59,25 @@ export const readHead = async (path: string, bytes: number = headBytes): Promise
 }
 
 /**
+ * Reads the last `bytes` of a file, dropping the first line if it was cut, so every line is whole.
+ * Returns '' when the head read already covered the file.
+ */
+export const readTail = async (path: string, size: number, bytes: number): Promise<string> => {
+	if (size <= bytes) {
+		return ''
+	}
+
+	const handle = await open(path, 'r')
+	const start = size - bytes
+	const read = await handle.read(Buffer.alloc(bytes), 0, bytes, start).catch(() => undefined)
+	await handle.close()
+	const text = read === undefined ? '' : read.buffer.subarray(0, read.bytesRead).toString('utf8')
+	const firstBreak = text.indexOf('\n')
+
+	return firstBreak === -1 ? '' : text.slice(firstBreak + 1)
+}
+
+/**
  * Source for a file on an auto-detect shelf: whatever its first lines look like, as long as it sits
  * where that harness would put it or loose in the shelf folder. That keeps side files such as
  * Claude Code subagent logs out of the list.
