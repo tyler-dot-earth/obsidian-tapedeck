@@ -30,15 +30,32 @@ Rows appear straight away and titles fill in as they are read. Tapedeck reads on
 
 The tape rack is a sidebar list of every tape on your enabled shelves. Open it with the cassette ribbon icon or **📼 Open tape rack**; it opens in the right sidebar.
 
-Each row shows a checkbox, the agent emoji, date and time, project, a badge, and the title (see Tape titles). Badges are **new** (not imported yet), **in vault**, or **changed** (the session file changed after the note's `updated` or `created` time, with a minute of slack).
+Each row shows a checkbox, the agent emoji, date and time, project (with the worktree, see Projects and worktrees), a badge, and the title (see Tape titles). Badges are **new** (not imported yet), **in vault**, or **changed** (the session file changed after the note's `updated` or `created` time, with a minute of slack).
 
-- **Click a row** to import it, or to open its note if it is already in the vault.
-- **The row button** (on hover) imports, or re-imports a tape that is in the vault.
-- **Tick rows** and press **Import N tapes** to import several at once; **Clear** drops the ticks.
+- **Click a row** to preview it: a read-only window with the title, agent, project and branch, date, turn count, and the first few turns rendered like the note, with **Import** (or **Re-import** and **Open note**) and **Close**. Previewing never writes to the vault. A row that is already in the vault opens its note instead.
+- **The row button** imports, or re-imports a tape that is in the vault. With a mouse it appears over the row's right edge on hover, so it takes no width; on touch screens it sits after the badge.
+- **Tick rows** and press **Import N tapes** to import several at once; **Clear** drops the ticks. Importing more than 20 at once asks first.
+- **After an import** the row stays where it is with an **imported ✓** badge that opens the note, even with **Hide imported** on, until the next refresh or filter change. One tape gives a notice you can click to open the note; several give one summary with counts. A tape that fails gets an **import failed** badge (hover for the reason) and a notice.
 - **Search** works like the tape picker. Rows are grouped **by project** at first; switch to **by shelf** or **no groups**, click a heading to fold it, or use the fold button to collapse or expand every group. **Hide imported** shows only tapes without a note.
-- **Refresh** (↻) re-lists the shelves. The rack also re-lists when it opens, when you come back to it after 30 seconds, and every 5 minutes while it is on screen. Listing never imports anything; only your clicks do.
+- **Refresh** (↻) re-lists the shelves. The rack also re-lists when it opens, when you come back to it after 30 seconds, and every 5 minutes while it is on screen. Listing never imports anything; only your clicks do, unless you turn on auto-import for a shelf.
 
 Badges follow the vault as notes are added, renamed, or deleted. The rack shares the picker's cache of titles and draws 200 lines at a time (**Show more** adds another 200), so thousands of tapes stay quick. Grouping and the hide toggle are kept with the workspace layout.
+
+## Projects and worktrees
+
+Sessions are grouped by the repo they ran in. A session in a git worktree goes under its main repo with the worktree after it, like `monorepo · motion-design`. Tapedeck finds the main repo from the worktree's `.git` file (`gitdir: <repo>/.git/worktrees/<name>`), or, when the worktree is gone, from common layouts: `…/worktrees/<repo>/<name>`, `<repo>/.worktrees/<name>`, and `<repo>-worktrees/<name>`. Before a tape is read, the project comes from its folder name, which Claude Code and Pi encode lossily (`/` and `.` become `-`); Tapedeck matches those names against folders that exist under your home folder, so `-home-me-my-app` resolves to `~/my-app` rather than `~/my/app`.
+
+## Auto-import
+
+Auto-import is off for every shelf until you pick a schedule under **⏰ Auto-import** in settings: every 15 minutes, hourly, or daily. It only runs while Obsidian is open.
+
+- Each run imports new tapes and re-imports changed ones from that shelf, the same as the rack's import button, so it only ever rewrites notes Tapedeck made.
+- Only tapes modified after you turned auto-import on are touched, so turning it on never sweeps in your history.
+- Subagent threads and empty files are skipped, as in the rack.
+- On startup a shelf runs only if a run is due; runs never overlap.
+- A run that imports something shows one summary notice; a run with nothing to do stays quiet.
+
+Turning it off clears the start time, so turning it on again starts fresh.
 
 ## Tape titles
 
@@ -139,6 +156,7 @@ Images in a tape are saved into the vault as real files and embedded where they 
 Each section is its own card.
 
 - **📼 Tape shelves**: saved folders to import from (see above), with the restore defaults button in its header. The old "recent sessions to list" setting is gone, since the picker searches every tape; an old value in `data.json` is ignored.
+- **⏰ Auto-import**: a schedule per shelf, off by default (see Auto-import).
 - **🏷️ Notes**: import folder, filename pattern (`{date} {time} {harness} {session} {title}`), raw or summary style, fold tool calls, tool output (full, truncated, none), truncate length, include thinking.
 - **⏸️ Freeze-frames**: import images (on by default) and a size limit in MB (0, the default, means no limit). Bigger images get a note instead.
 - **✂️ Redaction**: home folder as `~`, and mask secrets (API keys, GitHub and Slack tokens, AWS keys, JWTs, bearer headers, private keys, `key=value` secrets). These are simple patterns. Read a note before you share it.
