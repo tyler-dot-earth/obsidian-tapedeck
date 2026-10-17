@@ -257,7 +257,12 @@ const parse = (text: string): Result.Result<Transcript, TapedeckParseError> => {
 
 const DetectLine = Schema.Struct({ type: Schema.Literal('session'), id: Schema.String })
 
-/** Pi `~/.pi/agent/sessions/--<cwd>--/<timestamp>_<session-id>.jsonl`. */
+/**
+ * Pi `~/.pi/agent/sessions/--<cwd>--/<timestamp>_<session-id>.jsonl`. The default folder is
+ * `getSessionsDir()` in pi's `packages/coding-agent/src/config.ts` (`<home>/.pi/agent/sessions`),
+ * also stated in its `docs/sessions.md`. Pi users can move it with `--session-dir`,
+ * `PI_CODING_AGENT_SESSION_DIR`, or the `sessionDir` setting; add a tape shelf for that folder.
+ */
 export const piSource: TranscriptSource = {
 	harness: 'pi',
 	label: 'Pi',
