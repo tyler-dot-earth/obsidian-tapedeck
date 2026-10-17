@@ -151,6 +151,18 @@ Images in a tape are saved into the vault as real files and embedded where they 
 - **Placement**: Claude Code and Codex write `[Image #1]` in the prompt. The embed replaces that placeholder, so `[Image #1] more like this` becomes the image followed by `more like this`. Images without a placeholder stay where they were in the turn. Tool images go inside the tool's callout.
 - **When an image cannot be saved** (import is off, it is over the size limit, the file it pointed to is gone, the session only kept an upload id, or the write failed), the note gets a line like `*⏸️ [Image #2] not imported: the file is no longer at ~/shots/gone.png*` instead of an error.
 
+## Privacy and file access
+
+Tapedeck is desktop only because it reads files outside your vault with Node's `fs`. Everything stays on your computer.
+
+- **Reads** session files from the default shelves, `~/.claude/projects`, `~/.codex/sessions`, and `~/.pi/agent/sessions`, plus any shelf folder you add and any file you pick with **⏏️ Import session file**. It also reads `~/.codex/session_index.jsonl` for Codex thread names.
+- **Looks at folders under your home folder** to match project and worktree names: it lists folder names and reads worktree `.git` files, nothing else.
+- **Copies local images** that a Codex session referenced by path into your vault, if the file still exists.
+- **Writes only to your vault**: transcript notes in your import folder and images in your attachment folder. It never changes session files.
+- **Makes no network requests.** Remote image URLs are kept as links, not downloaded.
+- **Redaction is best-effort.** The home-folder and secret patterns catch common cases, not every secret, so read a note before you share it.
+- **Notes include a machine name** (your computer's hostname in the `machine` property) unless you turn off **Machine name** under ✂️ Redaction.
+
 ## Settings
 
 Each section is its own card.
