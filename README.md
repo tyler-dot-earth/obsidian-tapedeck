@@ -9,12 +9,13 @@ Requires Obsidian 1.13.0 or newer, on desktop.
 1. Run **📼 Import from tape shelves**, pick **All enabled shelves** or one shelf, then tick the tapes you want in the tape picker (see below) and press **Import N tapes**. The last shelf row, **⏏️ One-off file…**, opens the file picker below.
 2. Or run **⏏️ Import session file** and paste a path or choose a `.jsonl` file. Tapedeck works out which agent wrote it.
 3. In a transcript note, run **⏪ Re-import current transcript** to pull the latest version of that session.
+4. Or open the **📼 tape rack** sidebar to browse your tapes and import with a click (see below).
 
 Importing a session that already has a note updates that note. It finds it by `session_id`, so you never get duplicates. Re-imports keep `created` and whatever you typed into `project`, and add `updated`.
 
 ## Tape picker
 
-After you pick a shelf, the tape picker lists **every** tape on it, newest first (by when the file last changed). Each row shows the agent emoji, date and time, project, and first prompt, for example `🟠 2026-01-15 09:00 · demo · Make the greeting say hello world`. Tapes that already have a note are marked `⏪ in vault`; importing them again updates that note.
+After you pick a shelf, the tape picker lists **every** tape on it, newest first (by when the file last changed). Each row shows the agent emoji, date and time, project, and first prompt, for example `🟠 2026-01-15 09:00 · demo · Make the greeting say hello world`. Tapes that already have a note are marked `⏪ in vault`, or `⏩ changed since import` when the session file has changed since the note was written; importing them again updates that note.
 
 - **Search** matches every word you type against the agent, shelf, project, first prompt, and date, so `demo 2026-01` finds January tapes from the demo project.
 - **Nothing is selected** when the picker opens. Click rows or use the keyboard to tick them. **Select all N** and **Select none** act on the rows your search currently shows; ticks outside the search are kept and counted as hidden.
@@ -24,6 +25,20 @@ After you pick a shelf, the tape picker lists **every** tape on it, newest first
 The project comes from the session's working directory. Until a tape's first lines are read, Claude Code and Pi rows show a guess from their project folder name (with your home folder stripped, e.g. `code-my-app`); Codex rows show `—`.
 
 Rows appear straight away and first prompts fill in as they are read. Tapedeck reads only the first 64 KB of each tape (1 MB if that is not enough), eight at a time, newest first, and remembers what it read until the file changes, so reopening the picker is instant. Up to 300 matching rows are drawn at once; search still covers every tape.
+
+## Tape rack
+
+The tape rack is a sidebar list of every tape on your enabled shelves. Open it with the cassette ribbon icon or **📼 Open tape rack**; it opens in the right sidebar.
+
+Each row shows a checkbox, the agent emoji, date and time, project, a badge, and the first prompt. Badges are **new** (no note yet), **in vault**, or **changed** (the session file changed after the note's `updated` or `created` time, with a minute of slack).
+
+- **Click a row** to import it, or to open its note if it is already in the vault.
+- **The row button** (on hover) imports, or re-imports a tape that is in the vault.
+- **Tick rows** and press **Import N tapes** to import several at once; **Clear** drops the ticks.
+- **Search** works like the tape picker. **Group** by project or by shelf (click a heading to fold it), and **Hide in vault** shows only tapes without a note.
+- **Refresh** (↻) re-lists the shelves. The rack also re-lists when it opens, when you come back to it after 30 seconds, and every 5 minutes while it is on screen. Listing never imports anything; only your clicks do.
+
+Badges follow the vault as notes are added, renamed, or deleted. The rack shares the picker's cache of first prompts and draws 200 lines at a time (**Show more** adds another 200), so thousands of tapes stay quick. Grouping and the hide toggle are kept with the workspace layout.
 
 ## Tape shelves
 
