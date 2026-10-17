@@ -11,6 +11,7 @@ Each harness is a `TranscriptSource` (`src/tapedeck-transcript.ts`): `matchesFil
 - Sources: `src/tapedeck-source-claude-code.ts`, `src/tapedeck-source-codex.ts`, `src/tapedeck-source-pi.ts`, registry in `src/tapedeck-sources.ts`
 - Tape shelves (saved source folders, never called "bookmarks"): model and `~` expansion in `src/tapedeck-shelves.ts`, listing in `src/tapedeck-session-files.ts`, editor and picker in `src/tapedeck-shelf-modals.ts`. A missing `tapeShelves` key means the defaults; old `*Directory` keys migrate onto the default shelves.
 - Tape picker: pure search/selection/project helpers in `src/tapedeck-tape-list.ts`, header reading and the path+size+mtime cache in `src/tapedeck-tape-info.ts`, the modal in `src/tapedeck-tape-picker.ts`. Never select tapes by default.
+- Images ("freeze-frames"): parsers emit `image` blocks and `ToolBlock.images` as `ImageSource` (`inline`/`file`/`url`/`missing`); pure helpers and `[Image #N]` placement in `src/tapedeck-images.ts`; `src/tapedeck-image-import.ts` saves them (content-hash names) and swaps in `vault` embeds before rendering. Image fixtures in `fixtures/images/` use generated PNGs only.
 - `fixtures/` holds synthetic sessions only. Never commit a real session file.
 - `effect-obsidian` is `@tyler.earth/effect-obsidian` on npm
 - Release artifacts at repo root: `main.js`, `manifest.json`, `styles.css`

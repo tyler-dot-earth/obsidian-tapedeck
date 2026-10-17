@@ -92,10 +92,26 @@ project:
 
 Tool calls are callouts, folded by default. Input is a JSON block, edits and patches are `diff` blocks, and output is a `text` block. Failed calls use a `failure` callout. Output is kept in full unless you say otherwise.
 
+## Freeze-frames (images)
+
+Images in a tape are saved into the vault as real files and embedded where they appeared.
+
+| Source      | What Tapedeck reads                                                                                                                                                                                                       |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Claude Code | Pasted images (base64 `image` blocks in user messages) and images in tool results, such as `Read` on a PNG.                                                                                                               |
+| Codex CLI   | `input_image` items with `data:` URLs in user messages and tool output (`view_image`). A local image Codex tagged by path but did not inline is copied from that path if the file still exists. Remote URLs become links. |
+| Pi          | `{ type: "image", data, mimeType }` parts in user messages and tool results.                                                                                                                                              |
+
+- **Where they land**: Obsidian's attachment folder (Settings → Files and links → Default location for new attachments), worked out for the transcript note, so "same folder as current file" and subfolder settings work too.
+- **Names** are `tapedeck-<first 8 of session id>-<12 hex of a SHA-256 of the image>.<ext>`. Re-importing a tape reuses the files already there instead of writing `… 1.png` copies, and an image that appears twice in a tape is saved once.
+- **Placement**: Claude Code and Codex write `[Image #1]` in the prompt. The embed replaces that placeholder, so `[Image #1] more like this` becomes the image followed by `more like this`. Images without a placeholder stay where they were in the turn. Tool images go inside the tool's callout.
+- **When an image cannot be saved** (import is off, it is over the size limit, the file it pointed to is gone, the session only kept an upload id, or the write failed), the note gets a line like `*⏸️ [Image #2] not imported: the file is no longer at ~/shots/gone.png*` instead of an error.
+
 ## Settings
 
 - **📼 Tape shelves**: saved folders to import from (see above) and restore defaults. The old "recent sessions to list" setting is gone, since the picker searches every tape; an old value in `data.json` is ignored.
 - **🏷️ Notes**: import folder, filename pattern (`{date} {time} {harness} {session} {title}`), raw or summary style, fold tool calls, tool output (full, truncated, none), truncate length, include thinking.
+- **⏸️ Freeze-frames**: import images (on by default) and a size limit in MB (0, the default, means no limit). Bigger images get a note instead.
 - **✂️ Redaction**: home folder as `~`, and mask secrets (API keys, GitHub and Slack tokens, AWS keys, JWTs, bearer headers, private keys, `key=value` secrets). These are simple patterns. Read a note before you share it.
 
 Summary style keeps what you and the agent said and replaces tool callouts with one line per turn, like `📼 3 tool calls: Read, Edit, Bash`.
@@ -104,7 +120,7 @@ License is MIT.
 
 ## Sample vault
 
-`example/vault` is an empty vault for trying the plugin. `fixtures/` has a synthetic session for each source. See `example/README.md`.
+`example/vault` is an empty vault for trying the plugin. `fixtures/` has a synthetic session for each source, and `fixtures/images/` one per source with tiny generated PNGs. See `example/README.md`.
 
 ## Install for development
 
