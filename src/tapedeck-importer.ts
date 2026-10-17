@@ -2,12 +2,13 @@ import { hostname, homedir } from 'node:os'
 import { basename } from 'node:path'
 
 import { Effect, Option, Result, Schema } from 'effect'
-import { type App, normalizePath, TFile } from 'obsidian'
+import { type App, normalizePath, type TAbstractFile, TFile } from 'obsidian'
 
 import { CodexThreadNames } from '#/src/tapedeck-codex-names'
 import type { TapedeckParseError } from '#/src/tapedeck-errors'
 import { parseTimestamp, transcriptFilename } from '#/src/tapedeck-filename'
 import { resolveImages } from '#/src/tapedeck-image-import'
+import { NoteIndex } from '#/src/tapedeck-note-index'
 import type { ResolvedTapedeckSettings } from '#/src/tapedeck-plugin-settings'
 import {
 	previewBytes,
@@ -92,7 +93,7 @@ export class TapedeckImporter {
 	private readonly app: App
 	private readonly settings: () => ResolvedTapedeckSettings
 	private readonly threadNames: CodexThreadNames
-	private noteIndex: Map<string, TFile> | undefined
+	private noteIndex: NoteIndex<TFile> | undefined
 
 	constructor(
 		app: App,
@@ -125,27 +126,50 @@ export class TapedeckImporter {
 		}
 	}
 
-	/** Drops the session index; the plugin calls this when notes change, are renamed, or deleted. */
+	/** Drops the session index so the next lookup rebuilds it (after the first full metadata pass). */
 	forgetNotes(): void {
 		this.noteIndex = undefined
 	}
 
 	/**
-	 * Tapedeck notes by harness and session id. Built from the metadata cache on first use and kept
-	 * until a note changes, so imports do not scan every markdown file each time.
+	 * Updates the index for one changed note. Returns whether it is or was a Tapedeck note (its
+	 * import time may have moved); other notes cost one frontmatter decode and no rebuild.
 	 */
-	private notesBySession(): Map<string, TFile> {
+	noteChanged(file: TFile): boolean {
+		const frontmatter = this.transcriptFrontmatter(file)
+		const key = frontmatter && noteKey(frontmatter.harness, frontmatter.session_id)
+		const was = this.isIndexedNote(file)
+		this.noteIndex?.set(file, key)
+
+		return key !== undefined || was
+	}
+
+	/** Forgets a deleted note; returns whether it was a Tapedeck note. */
+	noteDeleted(file: TAbstractFile): boolean {
+		return file instanceof TFile && (this.noteIndex?.remove(file) ?? false)
+	}
+
+	/** Whether a file is an indexed Tapedeck note (renames keep it indexed). */
+	isIndexedNote(file: TAbstractFile): boolean {
+		return file instanceof TFile && (this.noteIndex?.has(file) ?? false)
+	}
+
+	/**
+	 * Tapedeck notes by harness and session id. Built from the metadata cache on first use, then
+	 * updated note by note, so imports never scan every markdown file.
+	 */
+	private notesBySession(): NoteIndex<TFile> {
 		if (this.noteIndex !== undefined) {
 			return this.noteIndex
 		}
 
-		const index = new Map<string, TFile>()
+		const index = new NoteIndex<TFile>()
 
 		for (const file of this.app.vault.getMarkdownFiles()) {
 			const frontmatter = this.transcriptFrontmatter(file)
 
 			if (frontmatter !== undefined) {
-				index.set(noteKey(frontmatter.harness, frontmatter.session_id), file)
+				index.set(file, noteKey(frontmatter.harness, frontmatter.session_id))
 			}
 		}
 
@@ -241,7 +265,7 @@ export class TapedeckImporter {
 		}
 
 		const file = await this.app.vault.create(notePath, markdown)
-		this.notesBySession().set(noteKey(transcript.harness, transcript.sessionId), file)
+		this.notesBySession().set(file, noteKey(transcript.harness, transcript.sessionId))
 
 		return { file, transcript, updated: false }
 	}

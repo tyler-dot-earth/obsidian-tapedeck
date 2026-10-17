@@ -21,6 +21,7 @@ import { mapWithLimit } from '#/src/tapedeck-concurrency'
 import { tapedeckErrorMessage } from '#/src/tapedeck-errors'
 import { TapedeckImporter, type ImportOutcome } from '#/src/tapedeck-importer'
 import { type FileChoice, ImportFileModal } from '#/src/tapedeck-modals'
+import { ChangeSignal } from '#/src/tapedeck-note-index'
 import {
 	type TapedeckPluginSettings,
 	defaultTapedeckPluginSettings,
@@ -56,6 +57,9 @@ export default class TapedeckPlugin extends Plugin {
 		this.threadNames,
 	)
 
+	/** Fires when a Tapedeck note is added, changed, renamed, or deleted. */
+	private readonly notesChanged = new ChangeSignal()
+
 	private readonly autoImport = new AutoImportRunner<TapeImportResult>({
 		shelves: (): ReadonlyArray<TapeShelf> => resolveTapedeckSettings(this.settings).tapeShelves,
 		runShelf: async (shelf): Promise<ReadonlyArray<TapeImportResult>> =>
@@ -88,15 +92,43 @@ export default class TapedeckPlugin extends Plugin {
 		})
 	}
 
-	/** Keeps the importer's session index in step with the vault. */
+	/**
+	 * Keeps the importer's session index in step with the vault one note at a time, and tells the
+	 * rack only when a Tapedeck note changed. The index is rebuilt once, after the metadata cache
+	 * finishes its first pass, in case it was built from a partial cache.
+	 */
 	private watchNotes(): void {
-		const forget = (): void => {
-			this.importer.forgetNotes()
+		const changed = (touched: boolean): void => {
+			if (touched) {
+				this.notesChanged.trigger()
+			}
 		}
 
-		this.registerEvent(this.app.metadataCache.on('changed', forget))
-		this.registerEvent(this.app.vault.on('delete', forget))
-		this.registerEvent(this.app.vault.on('rename', forget))
+		this.registerEvent(
+			this.app.metadataCache.on('changed', (file) => {
+				changed(this.importer.noteChanged(file))
+			}),
+		)
+
+		this.registerEvent(
+			this.app.vault.on('delete', (file) => {
+				changed(this.importer.noteDeleted(file))
+			}),
+		)
+
+		this.registerEvent(
+			this.app.vault.on('rename', (file) => {
+				changed(this.importer.isIndexedNote(file))
+			}),
+		)
+
+		const firstPass = this.app.metadataCache.on('resolved', () => {
+			this.app.metadataCache.offref(firstPass)
+			this.importer.forgetNotes()
+			this.notesChanged.trigger()
+		})
+
+		this.registerEvent(firstPass)
 	}
 
 	/**
@@ -150,6 +182,7 @@ export default class TapedeckPlugin extends Plugin {
 					listTapes: async (): Promise<ReadonlyArray<SessionFile>> => this.listShelfTapes(),
 					cache: this.tapeInfo,
 					notes: (): NoteLookup => this.importer.importedNotes(),
+					watchNotes: (listener): (() => void) => this.notesChanged.on(listener),
 					importTapes: async (files): Promise<ReadonlyArray<TapeImportResult>> =>
 						this.importAndReport(files),
 					openNote: async (path): Promise<void> => this.openNote(path),

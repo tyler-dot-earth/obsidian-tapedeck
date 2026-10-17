@@ -61,6 +61,8 @@ export interface TapeRackHost {
 	readonly cache: TapeInfoCache
 	/** A fresh lookup of transcript notes in the vault. */
 	readonly notes: () => NoteLookup
+	/** Calls `listener` when a Tapedeck note changes; returns the unsubscribe. */
+	readonly watchNotes: (listener: () => void) => () => void
 	/** Imports the tapes and reports how each went, with a notice. */
 	readonly importTapes: (
 		files: ReadonlyArray<SessionFile>,
@@ -342,18 +344,20 @@ export class TapeRackView extends ItemView {
 		this.registerDomEvent(window, 'pointercancel', release)
 	}
 
-	/** Badges follow the vault, and returning to the rack re-lists stale shelves. */
+	/** Badges follow Tapedeck notes (other notes are ignored), and returning re-lists stale shelves. */
 	private watchVault(): void {
 		const settle = (): void => {
+			if (!this.started) {
+				return
+			}
+
 			window.clearTimeout(this.notesTimer)
 			this.notesTimer = window.setTimeout(() => {
 				this.updateStates()
 			}, notesSettleMs)
 		}
 
-		this.registerEvent(this.app.metadataCache.on('changed', settle))
-		this.registerEvent(this.app.vault.on('delete', settle))
-		this.registerEvent(this.app.vault.on('rename', settle))
+		this.register(this.host.watchNotes(settle))
 
 		this.registerEvent(
 			this.app.workspace.on('active-leaf-change', (leaf) => {
