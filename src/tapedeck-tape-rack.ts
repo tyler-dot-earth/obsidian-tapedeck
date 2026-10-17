@@ -9,6 +9,8 @@ import {
 	ToggleComponent,
 	type ViewStateResult,
 	type WorkspaceLeaf,
+	WorkspaceMobileDrawer,
+	WorkspaceSidedock,
 } from 'obsidian'
 
 import { mapWithLimit } from '#/src/tapedeck-concurrency'
@@ -86,6 +88,9 @@ const refreshMs = 5 * 60_000
 /** Coming back to the rack re-lists the shelves if the last listing is older than this. */
 const staleMs = 30_000
 
+/** Longest wait for an idle moment before the first listing starts anyway. */
+const idleTimeoutMs = 3000
+
 /** Wait after vault changes before recomputing states, so a batch import redraws once. */
 const notesSettleMs = 400
 
@@ -117,6 +122,10 @@ export class TapeRackView extends ItemView {
 	private generation = 0
 	private listing = false
 	private listedAt = 0
+	/** Set once the workspace layout is ready; nothing is listed before that. */
+	private layoutReady = false
+	/** Set when the first listing has been scheduled, which waits until the rack is on screen. */
+	private started = false
 	private redrawTimer: number | undefined
 	private notesTimer: number | undefined
 	private groupDropdown: DropdownComponent | undefined
@@ -171,18 +180,70 @@ export class TapeRackView extends ItemView {
 		this.contentEl.addClass('tapedeck-rack')
 		this.buildHeader()
 		this.contentEl.append(this.listEl)
+		this.statusEl.setText('Waiting to list tapes…')
 		this.watchVault()
 		this.watchPointer()
+		this.watchVisibility()
 
 		this.registerInterval(
 			window.setInterval(() => {
-				if (this.containerEl.isShown()) {
+				if (this.started && this.isOnScreen()) {
 					void this.refresh()
 				}
 			}, refreshMs),
 		)
 
-		await this.refresh()
+		this.app.workspace.onLayoutReady(() => {
+			this.layoutReady = true
+			this.startWhenShown()
+		})
+
+		await Promise.resolve()
+	}
+
+	override onResize(): void {
+		this.startWhenShown()
+	}
+
+	/**
+	 * Whether the rack can be seen: its tab is the one showing and its sidebar is not collapsed. A
+	 * restored rack in a hidden tab or a collapsed sidebar lists nothing until it is shown.
+	 */
+	private isOnScreen(): boolean {
+		const root = this.leaf.getRoot()
+
+		const collapsed =
+			(root instanceof WorkspaceSidedock || root instanceof WorkspaceMobileDrawer) && root.collapsed
+
+		return !collapsed && this.containerEl.isShown()
+	}
+
+	/**
+	 * Lists the shelves the first time the rack is on screen after the layout is ready, in an idle
+	 * moment, so restoring the workspace never waits on reading tapes.
+	 */
+	private startWhenShown(): void {
+		if (this.started || !this.layoutReady || !this.isOnScreen()) {
+			return
+		}
+
+		this.started = true
+
+		window.requestIdleCallback(
+			() => {
+				void this.refresh()
+			},
+			{ timeout: idleTimeoutMs },
+		)
+	}
+
+	private watchVisibility(): void {
+		const check = (): void => {
+			this.startWhenShown()
+		}
+
+		this.registerEvent(this.app.workspace.on('layout-change', check))
+		this.registerEvent(this.app.workspace.on('resize', check))
 	}
 
 	override async onClose(): Promise<void> {
@@ -218,6 +279,7 @@ export class TapeRackView extends ItemView {
 			.setIcon('refresh-cw')
 			.setTooltip('Refresh the tape list')
 			.onClick(() => {
+				this.started = true
 				void this.refresh()
 			})
 
@@ -295,7 +357,13 @@ export class TapeRackView extends ItemView {
 
 		this.registerEvent(
 			this.app.workspace.on('active-leaf-change', (leaf) => {
-				if (leaf === this.leaf && Date.now() - this.listedAt > staleMs) {
+				if (leaf !== this.leaf) {
+					return
+				}
+
+				if (!this.started) {
+					this.startWhenShown()
+				} else if (Date.now() - this.listedAt > staleMs) {
 					void this.refresh()
 				}
 			}),
