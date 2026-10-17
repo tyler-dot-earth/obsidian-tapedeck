@@ -33,8 +33,18 @@ export interface TapeRow {
  */
 export type TapeKind = 'session' | 'subagent' | 'empty' | 'unreadable'
 
-/** Whether a tape belongs in the picker and rack lists. Unread tapes are listed until read. */
-export const isListed = (row: TapeRow): boolean => row.kind !== 'subagent' && row.kind !== 'empty'
+/**
+ * Whether a tape belongs in the picker and rack lists. Unread Claude Code and Pi tapes are listed
+ * at once; unread Codex tapes wait for their first line, since most Codex files are subagent
+ * threads and would otherwise flash into the list and vanish.
+ */
+export const isListed = (row: TapeRow): boolean => {
+	if (row.kind === undefined) {
+		return row.harness !== 'codex'
+	}
+
+	return row.kind !== 'subagent' && row.kind !== 'empty'
+}
 
 /**
  * Where a tape stands against the vault: `unknown` until its session id is known, `new` with no
@@ -150,19 +160,21 @@ export const tapeSearchText = (row: TapeRow): string =>
  * Listed rows matching every word of the query, in their original (newest first) order. Words match
  * anywhere, case-insensitively, so `demo 2026-01` finds January tapes of the demo project.
  */
-export const filterTapes = (rows: ReadonlyArray<TapeRow>, query: string): Array<TapeRow> => {
+export const filterTapes = (rows: ReadonlyArray<TapeRow>, query: string): Array<TapeRow> =>
+	searchTapes(rows.filter(isListed), query)
+
+/** Rows matching every word of the query, listed or not. */
+export const searchTapes = (rows: ReadonlyArray<TapeRow>, query: string): Array<TapeRow> => {
 	const words = query
 		.toLowerCase()
 		.split(/\s+/)
 		.filter((word) => word !== '')
 
-	const listed = rows.filter(isListed)
-
 	if (words.length === 0) {
-		return listed
+		return [...rows]
 	}
 
-	return listed.filter((row) => {
+	return rows.filter((row) => {
 		const text = tapeSearchText(row)
 
 		return words.every((word) => text.includes(word))

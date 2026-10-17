@@ -2,6 +2,10 @@ import { assert, describe, it } from '@effect/vitest'
 
 import {
 	allFolded,
+	importSummary,
+	RenderGate,
+	rowOutcome,
+	type TapeImportResult,
 	defaultRackGrouping,
 	groupTapes,
 	rackItems,
@@ -122,5 +126,61 @@ describe('rack rows', () => {
 			rackSummary(rows.slice(1, 2), 3),
 			'1 tape · 1 not imported · 3 subagent or empty hidden',
 		)
+	})
+})
+
+describe('importing from the rack', () => {
+	it('keeps just-imported rows in place under Hide imported until the marks are dropped', () => {
+		assert.deepStrictEqual(paths(rackTapes(rows, '', true)), ['b', 'd'])
+		assert.deepStrictEqual(paths(rackTapes(rows, '', true, new Set(['c']))), ['b', 'c', 'd'])
+	})
+
+	it('keeps a row that turned out to be a subagent thread after its import', () => {
+		const subagent = row('s', { harness: 'codex', kind: 'subagent' })
+		assert.deepStrictEqual(paths(rackTapes([subagent], '', false)), [])
+		assert.deepStrictEqual(paths(rackTapes([subagent], '', false, new Set(['s']))), ['s'])
+	})
+
+	it('waits for unread Codex tapes before listing them', () => {
+		const unread = row('u', { harness: 'codex', kind: undefined })
+		assert.deepStrictEqual(paths(rackTapes([unread, row('v', { kind: undefined })], '', false)), [
+			'v',
+		])
+	})
+
+	it('reports each result', () => {
+		const results: ReadonlyArray<TapeImportResult> = [
+			{ path: 'a', ok: true, notePath: 'T/a.md', title: 'A', updated: false },
+			{ path: 'b', ok: true, notePath: 'T/b.md', title: 'B', updated: true },
+			{ path: 'c', ok: false, message: 'c.jsonl: No Codex session_meta line found' },
+		]
+
+		assert.strictEqual(importSummary(results), '📼 Tapedeck: 1 new, 1 updated, 1 failed.')
+		assert.strictEqual(importSummary(results.slice(0, 1)), '📼 Tapedeck: 1 new, 0 updated.')
+
+		assert.deepStrictEqual(
+			rowOutcome({ path: 'c', ok: false, message: 'c.jsonl: No Codex session_meta line found' }),
+			{
+				kind: 'failed',
+				message: 'c.jsonl: No Codex session_meta line found',
+			},
+		)
+	})
+})
+
+describe('RenderGate', () => {
+	it('holds redraws while the pointer is down and asks for one on release', () => {
+		const gate = new RenderGate()
+		assert.isTrue(gate.request())
+		gate.hold()
+		assert.isFalse(gate.request())
+		assert.isTrue(gate.release())
+		assert.isTrue(gate.request())
+	})
+
+	it('asks for nothing on release when nothing changed', () => {
+		const gate = new RenderGate()
+		gate.hold()
+		assert.isFalse(gate.release())
 	})
 })

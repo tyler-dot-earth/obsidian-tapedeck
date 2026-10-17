@@ -1,4 +1,10 @@
-import { filterTapes, isInVault, type TapeRow, type TapeState } from '#/src/tapedeck-tape-list'
+import {
+	isInVault,
+	isListed,
+	searchTapes,
+	type TapeRow,
+	type TapeState,
+} from '#/src/tapedeck-tape-list'
 
 /** Pure pieces of the tape rack sidebar: filtering, grouping, and the flat list it draws. */
 
@@ -15,16 +21,20 @@ export const rackGroupingLabels: Record<RackGrouping, string> = {
 	shelf: 'By shelf',
 }
 
-/** Rows matching the search, minus tapes already in the vault when those are hidden. */
+/**
+ * Rows matching the search, minus unlisted tapes and, when hidden, tapes already in the vault. Rows
+ * in `kept` (just imported or failed) stay put until the next refresh or filter change, so a row
+ * never vanishes under the pointer.
+ */
 export const rackTapes = (
 	rows: ReadonlyArray<TapeRow>,
 	query: string,
 	hideInVault: boolean,
-): Array<TapeRow> => {
-	const matching = filterTapes(rows, query)
-
-	return hideInVault ? matching.filter((row) => !isInVault(row)) : matching
-}
+	kept: ReadonlySet<string> = new Set(),
+): Array<TapeRow> =>
+	searchTapes(rows, query).filter(
+		(row) => kept.has(row.path) || (isListed(row) && !(hideInVault && isInVault(row))),
+	)
 
 /** One group of rows under a heading. */
 export interface RackGroup {
@@ -101,6 +111,81 @@ export const toggleAllFolds = (
 /** What clicking a row does: open the note when there is one, otherwise import the tape. */
 export const rowClickAction = (row: TapeRow): 'open' | 'import' =>
 	isInVault(row) && row.notePath !== undefined ? 'open' : 'import'
+
+/** How importing one tape went. */
+export type TapeImportResult =
+	| {
+			readonly path: string
+			readonly ok: true
+			readonly notePath: string
+			readonly title: string
+			readonly updated: boolean
+	  }
+	| { readonly path: string; readonly ok: false; readonly message: string }
+
+/** What a row shows after an import from the rack, until the next refresh. */
+export type RowOutcome =
+	| { readonly kind: 'importing' }
+	| { readonly kind: 'imported'; readonly notePath: string; readonly updated: boolean }
+	| { readonly kind: 'failed'; readonly message: string }
+
+/** Row outcome for an import result. */
+export const rowOutcome = (result: TapeImportResult): RowOutcome =>
+	result.ok
+		? { kind: 'imported', notePath: result.notePath, updated: result.updated }
+		: { kind: 'failed', message: result.message }
+
+/** Badge text for an outcome. */
+export const outcomeBadges: Record<RowOutcome['kind'], string> = {
+	importing: 'importing…',
+	imported: 'imported ✓',
+	failed: 'import failed',
+}
+
+/** "📼 Tapedeck: 3 new, 1 updated, 1 failed." for a batch import. */
+export const importSummary = (results: ReadonlyArray<TapeImportResult>): string => {
+	const updated = results.filter((result) => result.ok && result.updated).length
+	const failed = results.filter((result) => !result.ok).length
+	const created = results.length - updated - failed
+	const failures = failed > 0 ? `, ${failed} failed` : ''
+
+	return `📼 Tapedeck: ${created} new, ${updated} updated${failures}.`
+}
+
+/**
+ * Holds redraws while the pointer is down on the list. Redrawing replaces row elements, and a click
+ * whose press and release land on different elements never fires, so redraws that arrive mid-click
+ * (titles streaming in, a refresh when the rack gains focus) wait for the release.
+ */
+export class RenderGate {
+	private held = false
+	private pending = false
+
+	/** The pointer went down on the list. */
+	hold(): void {
+		this.held = true
+	}
+
+	/** The pointer came up. Returns whether a redraw was asked for meanwhile. */
+	release(): boolean {
+		const pending = this.pending
+		this.held = false
+		this.pending = false
+
+		return pending
+	}
+
+	/** Asks to redraw now. Returns false, and remembers the ask, while held. */
+	request(): boolean {
+		if (this.held) {
+			this.pending = true
+
+			return false
+		}
+
+		return true
+	}
+}
 
 /** Short badge text for a state. */
 export const stateBadges: Record<TapeState, string> = {

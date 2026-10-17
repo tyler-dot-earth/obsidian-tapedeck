@@ -1,3 +1,5 @@
+import { basename } from 'node:path'
+
 import {
 	disposePluginRuntime,
 	makePluginRuntime,
@@ -18,6 +20,7 @@ import {
 	loadTapedeckPluginSettings,
 	resolveTapedeckSettings,
 } from '#/src/tapedeck-plugin-settings'
+import { importSummary, type TapeImportResult } from '#/src/tapedeck-rack-list'
 import { listSessionFiles, type SessionFile } from '#/src/tapedeck-session-files'
 import { TapedeckSettingTab } from '#/src/tapedeck-setting-tab'
 import { type ShelfPick, ShelfSuggestModal } from '#/src/tapedeck-shelf-modals'
@@ -67,7 +70,8 @@ export default class TapedeckPlugin extends Plugin {
 					listTapes: async (): Promise<ReadonlyArray<SessionFile>> => this.listShelfTapes(),
 					cache: this.tapeInfo,
 					notes: (): NoteLookup => this.importer.importedNotes(),
-					importTapes: async (files): Promise<void> => this.importTapes(files),
+					importTapes: async (files): Promise<ReadonlyArray<TapeImportResult>> =>
+						this.importAndReport(files),
 					openNote: async (path): Promise<void> => this.openNote(path),
 				}),
 		)
@@ -126,7 +130,7 @@ export default class TapedeckPlugin extends Plugin {
 		}
 
 		if (files.length > 1) {
-			await this.importMany(files)
+			await this.importAndReport(files)
 		}
 	}
 
@@ -216,19 +220,65 @@ export default class TapedeckPlugin extends Plugin {
 		}).open()
 	}
 
-	private async importMany(files: ReadonlyArray<SessionFile>): Promise<void> {
-		new Notice(`⏯️ Tapedeck: importing ${files.length} tapes…`)
+	/**
+	 * Imports tapes without opening their notes, reporting every result: a clickable notice for one
+	 * tape, a summary for several. Failures never pass silently.
+	 */
+	private async importAndReport(
+		files: ReadonlyArray<SessionFile>,
+	): Promise<ReadonlyArray<TapeImportResult>> {
+		if (files.length > 1) {
+			new Notice(`⏯️ Tapedeck: importing ${files.length} tapes…`)
+		}
 
-		const outcomes = await mapWithLimit(files, importConcurrency, (file) =>
-			this.importer.importFile(file.path, file.source).catch(() => undefined),
+		const results = await mapWithLimit(files, importConcurrency, async (file) =>
+			this.importOne(file),
 		)
 
-		const updated = outcomes.filter((outcome) => outcome?.updated === true).length
-		const failed = outcomes.filter((outcome) => outcome === undefined).length
-		const imported = outcomes.length - updated - failed
-		const skipped = failed > 0 ? `, ${failed} skipped` : ''
+		this.announce(results)
 
-		new Notice(`📼 Tapedeck: ${imported} new, ${updated} updated${skipped}.`)
+		return results
+	}
+
+	private async importOne(file: SessionFile): Promise<TapeImportResult> {
+		try {
+			const outcome = await this.importer.importFile(file.path, file.source)
+
+			return {
+				path: file.path,
+				ok: true,
+				notePath: outcome.file.path,
+				title: outcome.transcript.title,
+				updated: outcome.updated,
+			}
+		} catch (error) {
+			return { path: file.path, ok: false, message: tapedeckErrorMessage(error) }
+		}
+	}
+
+	private announce(results: ReadonlyArray<TapeImportResult>): void {
+		const [only] = results
+
+		if (results.length !== 1 || only === undefined) {
+			new Notice(importSummary(results))
+
+			return
+		}
+
+		if (!only.ok) {
+			new Notice(`⏹️ Tapedeck: couldn't import ${basename(only.path)}: ${only.message}`)
+
+			return
+		}
+
+		const verb = only.updated ? '⏪ Updated' : '⏏️ Imported'
+		const notice = new Notice(`${verb} ${only.title}`)
+		notice.messageEl.addClass('tapedeck-notice-link')
+		notice.messageEl.setAttr('aria-label', 'Open the note')
+
+		notice.messageEl.addEventListener('click', () => {
+			void this.openNote(only.notePath)
+		})
 	}
 
 	private async run(task: Promise<ImportOutcome>): Promise<void> {

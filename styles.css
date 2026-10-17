@@ -260,3 +260,40 @@
 .tapedeck-rack-header .clickable-icon.is-hidden {
 	display: none;
 }
+
+.tapedeck-rack-badge.is-importing {
+	color: var(--text-muted);
+}
+
+.tapedeck-rack-badge.is-imported {
+	color: var(--text-success);
+	background-color: rgba(var(--color-green-rgb), 0.12);
+}
+
+.tapedeck-rack-badge.is-link {
+	cursor: pointer;
+	text-decoration: underline;
+}
+
+.tapedeck-rack-badge.is-failed {
+	color: var(--text-error);
+	background-color: rgba(var(--color-red-rgb), 0.12);
+}
+
+.tapedeck-rack-tape.is-failed {
+	box-shadow: inset 2px 0 0 var(--text-error);
+}
+
+.tapedeck-rack-tape.is-flash {
+	animation: tapedeck-rack-flash 1.5s ease-out;
+}
+
+@keyframes tapedeck-rack-flash {
+	from {
+		background-color: hsla(var(--interactive-accent-hsl), 0.25);
+	}
+}
+
+.tapedeck-notice-link {
+	cursor: pointer;
+}

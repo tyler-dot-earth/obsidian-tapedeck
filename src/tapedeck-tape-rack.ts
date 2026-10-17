@@ -15,6 +15,11 @@ import { mapWithLimit } from '#/src/tapedeck-concurrency'
 import {
 	allFolded,
 	groupTapes,
+	outcomeBadges,
+	RenderGate,
+	type RowOutcome,
+	rowOutcome,
+	type TapeImportResult,
 	type RackGroup,
 	type RackGrouping,
 	defaultRackGrouping,
@@ -52,8 +57,10 @@ export interface TapeRackHost {
 	readonly cache: TapeInfoCache
 	/** A fresh lookup of transcript notes in the vault. */
 	readonly notes: () => NoteLookup
-	/** Imports the tapes; one tape opens its note when done. */
-	readonly importTapes: (files: ReadonlyArray<SessionFile>) => Promise<void>
+	/** Imports the tapes and reports how each went, with a notice. */
+	readonly importTapes: (
+		files: ReadonlyArray<SessionFile>,
+	) => Promise<ReadonlyArray<TapeImportResult>>
 	readonly openNote: (path: string) => Promise<void>
 }
 
@@ -65,6 +72,9 @@ const readConcurrency = 8
 
 /** How often rows are redrawn while first prompts stream in. */
 const redrawMs = 150
+
+/** How long a just-imported row is highlighted. */
+const flashMs = 1500
 
 /** Re-lists the shelves this often while the rack is on screen. Listing never imports. */
 const refreshMs = 5 * 60_000
@@ -111,6 +121,11 @@ export class TapeRackView extends ItemView {
 	private groups: ReadonlyArray<RackGroup> = []
 	private importButton: ButtonComponent | undefined
 	private clearButton: ButtonComponent | undefined
+	private readonly gate = new RenderGate()
+	/** Rows imported (or failed) from the rack since the last refresh, kept visible. */
+	private kept: ReadonlySet<string> = new Set()
+	private outcomes = new Map<string, RowOutcome>()
+	private readonly flashUntil = new Map<string, number>()
 	private readonly statusEl = createDiv({ cls: 'tapedeck-rack-status' })
 	private readonly selectionEl = createDiv({ cls: 'tapedeck-rack-selection' })
 	private readonly listEl = createDiv({ cls: 'tapedeck-rack-list' })
@@ -153,6 +168,7 @@ export class TapeRackView extends ItemView {
 		this.buildHeader()
 		this.contentEl.append(this.listEl)
 		this.watchVault()
+		this.watchPointer()
 
 		this.registerInterval(
 			window.setInterval(() => {
@@ -232,6 +248,7 @@ export class TapeRackView extends ItemView {
 
 		this.hideToggle = new ToggleComponent(hide).setValue(this.hideInVault).onChange((value) => {
 			this.hideInVault = value
+			this.forgetOutcomes()
 			this.limit = pageSize
 			this.render()
 			this.app.workspace.requestSaveLayout()
@@ -239,6 +256,24 @@ export class TapeRackView extends ItemView {
 
 		hide.createSpan({ text: 'Hide imported' })
 		setTooltip(hide, 'Hide tapes that already have a note')
+	}
+
+	/** Holds redraws while the pointer is down on the list, so clicks always land. */
+	private watchPointer(): void {
+		this.registerDomEvent(this.listEl, 'pointerdown', () => {
+			this.gate.hold()
+		})
+
+		const release = (): void => {
+			if (this.gate.release()) {
+				window.setTimeout(() => {
+					this.render()
+				}, 0)
+			}
+		}
+
+		this.registerDomEvent(window, 'pointerup', release)
+		this.registerDomEvent(window, 'pointercancel', release)
 	}
 
 	/** Badges follow the vault, and returning to the rack re-lists stale shelves. */
@@ -281,12 +316,21 @@ export class TapeRackView extends ItemView {
 
 		this.generation += 1
 		this.notes = this.host.notes()
+		this.forgetOutcomes()
 		this.loaded = 0
 		this.rows = this.files.map((file) => this.rowFor(file))
 		const known = new Set(this.files.map((file) => file.path))
 		this.selection = new Set([...this.selection].filter((path) => known.has(path)))
 		this.render()
 		await this.loadTitles(this.generation)
+	}
+
+	/** Drops finished import marks, so imported rows follow the filters again. */
+	private forgetOutcomes(): void {
+		this.outcomes = new Map(
+			[...this.outcomes].filter(([, outcome]) => outcome.kind === 'importing'),
+		)
+		this.kept = new Set(this.outcomes.keys())
 	}
 
 	private rowFor(file: SessionFile): TapeRow {
@@ -334,8 +378,15 @@ export class TapeRackView extends ItemView {
 		}, redrawMs)
 	}
 
+	/** Redraws now, or once the pointer is released. */
 	private render(): void {
-		const visible = rackTapes(this.rows, this.query, this.hideInVault)
+		if (this.gate.request()) {
+			this.draw()
+		}
+	}
+
+	private draw(): void {
+		const visible = rackTapes(this.rows, this.query, this.hideInVault, this.kept)
 		const groups = groupTapes(visible, this.groupBy)
 		this.groups = groups
 		const items = rackItems(groups, this.groupBy, this.collapsed)
@@ -391,7 +442,10 @@ export class TapeRackView extends ItemView {
 
 	private renderRow(row: TapeRow): void {
 		const el = this.listEl.createDiv({ cls: `tapedeck-rack-tape is-${row.state}` })
+		const outcome = this.outcomes.get(row.path)
 		el.toggleClass('is-checked', this.selection.has(row.path))
+		el.toggleClass('is-failed', outcome?.kind === 'failed')
+		el.toggleClass('is-flash', (this.flashUntil.get(row.path) ?? 0) > Date.now())
 
 		el.setAttr(
 			'aria-label',
@@ -427,6 +481,19 @@ export class TapeRackView extends ItemView {
 			meta.createSpan({ cls: 'tapedeck-rack-project', text: project })
 		}
 
+		this.renderBadge(meta, row)
+		body.createDiv({ cls: 'tapedeck-rack-title', text: row.title ?? '…' })
+	}
+
+	private renderBadge(meta: HTMLElement, row: TapeRow): void {
+		const outcome = this.outcomes.get(row.path)
+
+		if (outcome !== undefined) {
+			this.renderOutcome(meta, outcome)
+
+			return
+		}
+
 		const badge = stateBadges[row.state]
 
 		if (badge !== '') {
@@ -436,8 +503,29 @@ export class TapeRackView extends ItemView {
 				attr: { 'aria-label': stateTooltips[row.state] },
 			})
 		}
+	}
 
-		body.createDiv({ cls: 'tapedeck-rack-title', text: row.title ?? '…' })
+	private renderOutcome(meta: HTMLElement, outcome: RowOutcome): void {
+		const badge = meta.createSpan({
+			cls: `tapedeck-rack-badge is-${outcome.kind}`,
+			text: outcomeBadges[outcome.kind],
+		})
+
+		if (outcome.kind === 'failed') {
+			badge.setAttr('aria-label', outcome.message)
+
+			return
+		}
+
+		if (outcome.kind === 'imported') {
+			badge.addClass('is-link')
+			badge.setAttr('aria-label', 'Open the note')
+
+			badge.addEventListener('click', (event) => {
+				event.stopPropagation()
+				void this.host.openNote(outcome.notePath)
+			})
+		}
 	}
 
 	private renderRowButton(el: HTMLElement, row: TapeRow): void {
@@ -445,7 +533,7 @@ export class TapeRackView extends ItemView {
 
 		new ExtraButtonComponent(el)
 			.setIcon(reimport ? 'rotate-ccw' : 'download')
-			.setTooltip(reimport ? 'Re-import' : 'Import')
+			.setTooltip(reimport ? 'Re-import this tape' : 'Import this tape')
 			.onClick(() => {
 				void this.importRows([row])
 			})
@@ -504,10 +592,25 @@ export class TapeRackView extends ItemView {
 		await this.importRows(chosen)
 	}
 
+	/** Imports rows, keeping them in place with a badge for how each went. */
 	private async importRows(rows: ReadonlyArray<TapeRow>): Promise<void> {
 		const byPath = new Map(this.files.map((file) => [file.path, file]))
 		const files = rows.flatMap((row) => byPath.get(row.path) ?? [])
-		await this.host.importTapes(files)
+		this.kept = new Set([...this.kept, ...files.map((file) => file.path)])
+
+		for (const file of files) {
+			this.outcomes.set(file.path, { kind: 'importing' })
+		}
+
+		this.render()
+		const results = await this.host.importTapes(files)
+		const flashUntil = Date.now() + flashMs
+
+		for (const result of results) {
+			this.outcomes.set(result.path, rowOutcome(result))
+			this.flashUntil.set(result.path, flashUntil)
+		}
+
 		this.updateStates()
 	}
 }
