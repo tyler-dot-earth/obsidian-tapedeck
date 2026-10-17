@@ -15,30 +15,42 @@ Importing a session that already has a note updates that note. It finds it by `s
 
 ## Tape picker
 
-After you pick a shelf, the tape picker lists **every** tape on it, newest first (by when the file last changed). Each row shows the agent emoji, date and time, project, and first prompt, for example `🟠 2026-01-15 09:00 · demo · Make the greeting say hello world`. Tapes that already have a note are marked `⏪ in vault`, or `⏩ changed since import` when the session file has changed since the note was written; importing them again updates that note.
+After you pick a shelf, the tape picker lists **every** tape on it, newest first (by when the file last changed). Each row shows the agent emoji, date and time, project, and title, for example `🟠 2026-01-15 09:00 · demo · Make the greeting say hello world`. Tapes that already have a note are marked `⏪ in vault`, or `⏩ changed since import` when the session file has changed since the note was written; importing them again updates that note.
 
-- **Search** matches every word you type against the agent, shelf, project, first prompt, and date, so `demo 2026-01` finds January tapes from the demo project.
+- **Search** matches every word you type against the agent, shelf, project, title, and date, so `demo 2026-01` finds January tapes from the demo project.
 - **Nothing is selected** when the picker opens. Click rows or use the keyboard to tick them. **Select all N** and **Select none** act on the rows your search currently shows; ticks outside the search are kept and counted as hidden.
 - **Keyboard**: ↑/↓ move the highlight (and focus the list), Space ticks the highlighted row, Enter imports what is ticked, typing jumps back to the search field, Esc closes.
 - **Import N tapes** imports the ticked tapes, four at a time. A single tape opens its note when done.
 
 The project comes from the session's working directory. Until a tape's first lines are read, Claude Code and Pi rows show a guess from their project folder name (with your home folder stripped, e.g. `code-my-app`); Codex rows show `—`.
 
-Rows appear straight away and first prompts fill in as they are read. Tapedeck reads only the first 64 KB of each tape (1 MB if that is not enough), eight at a time, newest first, and remembers what it read until the file changes, so reopening the picker is instant. Up to 300 matching rows are drawn at once; search still covers every tape.
+Rows appear straight away and titles fill in as they are read. Tapedeck reads only the first 64 KB of each tape (1 MB if that has no prompt) plus the last 64 KB, eight tapes at a time, newest first, and remembers what it read until the file changes, so reopening the picker is instant. Up to 300 matching rows are drawn at once; search still covers every tape.
 
 ## Tape rack
 
 The tape rack is a sidebar list of every tape on your enabled shelves. Open it with the cassette ribbon icon or **📼 Open tape rack**; it opens in the right sidebar.
 
-Each row shows a checkbox, the agent emoji, date and time, project, a badge, and the first prompt. Badges are **new** (no note yet), **in vault**, or **changed** (the session file changed after the note's `updated` or `created` time, with a minute of slack).
+Each row shows a checkbox, the agent emoji, date and time, project, a badge, and the title (see Tape titles). Badges are **new** (not imported yet), **in vault**, or **changed** (the session file changed after the note's `updated` or `created` time, with a minute of slack).
 
 - **Click a row** to import it, or to open its note if it is already in the vault.
 - **The row button** (on hover) imports, or re-imports a tape that is in the vault.
 - **Tick rows** and press **Import N tapes** to import several at once; **Clear** drops the ticks.
-- **Search** works like the tape picker. **Group** by project or by shelf (click a heading to fold it), and **Hide in vault** shows only tapes without a note.
+- **Search** works like the tape picker. Rows are grouped **by project** at first; switch to **by shelf** or **no groups**, click a heading to fold it, or use the fold button to collapse or expand every group. **Hide imported** shows only tapes without a note.
 - **Refresh** (↻) re-lists the shelves. The rack also re-lists when it opens, when you come back to it after 30 seconds, and every 5 minutes while it is on screen. Listing never imports anything; only your clicks do.
 
-Badges follow the vault as notes are added, renamed, or deleted. The rack shares the picker's cache of first prompts and draws 200 lines at a time (**Show more** adds another 200), so thousands of tapes stay quick. Grouping and the hide toggle are kept with the workspace layout.
+Badges follow the vault as notes are added, renamed, or deleted. The rack shares the picker's cache of titles and draws 200 lines at a time (**Show more** adds another 200), so thousands of tapes stay quick. Grouping and the hide toggle are kept with the workspace layout.
+
+## Tape titles
+
+A tape's title is, in order:
+
+1. **The agent's own name for the session.** Claude Code: the latest `custom-title` (from `/rename`), else `ai-title`, else an older `summary` line. Codex: the latest `thread_name` for the session in `~/.codex/session_index.jsonl` (from `/rename` or Codex's own naming). Pi: the latest `session_info` name (from `/name`).
+2. **The first prompt you typed.** Text the agent injects is skipped: slash-command wrappers, command output, `Caveat:` lines, background-task notices, `<environment_context>`, `<user_instructions>`, AGENTS.md instructions, browser context, the Codex review-history preamble, and the like. Pasted text keeps its content, other tags are stripped, and whitespace is collapsed.
+3. **A fallback** such as `/clear only` (only bare commands were run) or `empty tape`.
+
+Names are appended as a session goes, so Tapedeck reads the last 64 KB of each tape as well as the start. Imported notes use the same title for their heading and file name.
+
+The picker and the rack leave out Codex subagent and review threads (they have a parent thread) and Claude Code files with no messages at all; the rack's status line counts them.
 
 ## Tape shelves
 
