@@ -39,6 +39,9 @@ import type { NoteLookup } from '#/src/tapedeck-tape-list'
 import { TapePickerModal } from '#/src/tapedeck-tape-picker'
 import { tapeRackViewType, TapeRackView } from '#/src/tapedeck-tape-rack'
 
+/** Longest wait for an idle moment before the startup auto-import check runs anyway. */
+const startupIdleMs = 10_000
+
 /** Vault writes in flight when importing many tapes at once. */
 const importConcurrency = 4
 
@@ -98,14 +101,15 @@ export default class TapedeckPlugin extends Plugin {
 
 	/**
 	 * Checks once a minute, while Obsidian is open, for shelves whose auto-import is due. The first
-	 * check runs at startup, so a run missed while Obsidian was closed catches up only if due.
+	 * check runs once startup is idle, so a run missed while Obsidian was closed catches up only if
+	 * due. With no shelf on auto-import a check reads nothing.
 	 */
 	private startAutoImport(): void {
 		const tick = (): void => {
 			void this.autoImport.tick(Date.now()).catch(() => undefined)
 		}
 
-		tick()
+		window.requestIdleCallback(tick, { timeout: startupIdleMs })
 		this.registerInterval(window.setInterval(tick, autoImportTickMs))
 	}
 
