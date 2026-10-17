@@ -115,7 +115,7 @@ export class TapedeckSettingTab extends PluginSettingTab {
 		return [
 			{
 				name: '📼 Tape shelves',
-				desc: 'Folders Tapedeck imports from, saved so you do not have to pick a path every time. Import from tape shelves lists tapes from every enabled shelf. ~ means your home folder. A shelf whose folder is missing is skipped.',
+				desc: 'Folders to browse when you import tapes (~ is your home folder).',
 				aliases: ['source folders', 'session folders', 'sources'],
 			},
 			{
