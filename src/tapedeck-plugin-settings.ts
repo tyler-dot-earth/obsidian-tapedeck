@@ -2,10 +2,22 @@ import { loadPluginSettings, type PluginDataStore } from '@tyler.earth/effect-ob
 import { Effect, Option, Schema } from 'effect'
 
 import { defaultFilenamePattern } from '#/src/tapedeck-filename'
+import {
+	defaultTapeShelves,
+	migratedDefaultShelves,
+	sameShelves,
+	TapeShelf,
+} from '#/src/tapedeck-shelves'
 
-/** Global plugin settings. Missing keys fall back to `tapedeckDefaults`. */
+/**
+ * Global plugin settings. Missing keys fall back to `tapedeckDefaults`. A missing `tapeShelves`
+ * means the default shelves. The three `*Directory` keys are from before shelves; they are still
+ * decoded so an upgrade carries a customised folder onto its default shelf, and are dropped the
+ * first time the shelf list is saved.
+ */
 export const TapedeckPluginSettings = Schema.Struct({
 	schemaVersion: Schema.optionalKey(Schema.Literal(1)),
+	tapeShelves: Schema.optionalKey(Schema.Array(TapeShelf)),
 	claudeCodeDirectory: Schema.optionalKey(Schema.String),
 	codexDirectory: Schema.optionalKey(Schema.String),
 	piDirectory: Schema.optionalKey(Schema.String),
@@ -23,15 +35,27 @@ export const TapedeckPluginSettings = Schema.Struct({
 
 export type TapedeckPluginSettings = Schema.Schema.Type<typeof TapedeckPluginSettings>
 
-export type TapedeckSettingKey = Exclude<keyof TapedeckPluginSettings, 'schemaVersion'>
+type LegacyKey = 'claudeCodeDirectory' | 'codexDirectory' | 'piDirectory'
 
-/** Settings with every default filled in. Empty directories mean the per-OS default. */
-export type ResolvedTapedeckSettings = Required<Omit<TapedeckPluginSettings, 'schemaVersion'>>
+const legacyKeys: ReadonlySet<string> = new Set([
+	'claudeCodeDirectory',
+	'codexDirectory',
+	'piDirectory',
+])
+
+/** Keys set through plain settings-tab controls. Shelves have their own editor. */
+export type TapedeckSettingKey = Exclude<
+	keyof TapedeckPluginSettings,
+	'schemaVersion' | 'tapeShelves' | LegacyKey
+>
+
+/** Settings with every default filled in. */
+export type ResolvedTapedeckSettings = Required<
+	Omit<TapedeckPluginSettings, 'schemaVersion' | LegacyKey>
+>
 
 export const tapedeckDefaults: ResolvedTapedeckSettings = {
-	claudeCodeDirectory: '',
-	codexDirectory: '',
-	piDirectory: '',
+	tapeShelves: defaultTapeShelves,
 	importFolder: 'Transcripts',
 	filenamePattern: defaultFilenamePattern,
 	foldToolCalls: true,
@@ -45,9 +69,6 @@ export const tapedeckDefaults: ResolvedTapedeckSettings = {
 }
 
 export const tapedeckSettingKeys: ReadonlyArray<TapedeckSettingKey> = [
-	'claudeCodeDirectory',
-	'codexDirectory',
-	'piDirectory',
 	'importFolder',
 	'filenamePattern',
 	'foldToolCalls',
@@ -66,10 +87,35 @@ export const isTapedeckSettingKey = (key: string): key is TapedeckSettingKey =>
 
 export const defaultTapedeckPluginSettings: TapedeckPluginSettings = TapedeckPluginSettings.make({})
 
-/** Fills defaults for every missing key. */
+/** Fills defaults for every missing key. Settings without shelves get the (migrated) defaults. */
 export const resolveTapedeckSettings = (
 	settings: TapedeckPluginSettings,
-): ResolvedTapedeckSettings => ({ ...tapedeckDefaults, ...settings })
+): ResolvedTapedeckSettings => ({
+	...tapedeckDefaults,
+	...settings,
+	tapeShelves: settings.tapeShelves ?? migratedDefaultShelves(settings),
+})
+
+/**
+ * Replaces the shelf list. `undefined`, or a list equal to the defaults, drops the key so the
+ * defaults apply (this is how "restore defaults" works). Pre-shelf folder keys are dropped either
+ * way, since the list now says where to look.
+ */
+export const withTapeShelves = (
+	current: TapedeckPluginSettings,
+	shelves: ReadonlyArray<TapeShelf> | undefined,
+): TapedeckPluginSettings => {
+	const kept = Object.fromEntries(
+		Object.entries(current).filter(([key]) => key !== 'tapeShelves' && !legacyKeys.has(key)),
+	)
+
+	const next =
+		shelves === undefined || sameShelves(shelves, defaultTapeShelves)
+			? kept
+			: { ...kept, tapeShelves: shelves }
+
+	return Option.getOrElse(Schema.decodeUnknownOption(TapedeckPluginSettings)(next), () => current)
+}
 
 /** Plugin surface the settings tab uses to persist settings. */
 export interface TapedeckPluginSettingsHost {

@@ -23,8 +23,9 @@ import {
 	resolveTapedeckSettings,
 } from '#/src/tapedeck-plugin-settings'
 import { sessionChoice } from '#/src/tapedeck-session-choice'
-import { expandHome, listSessionFiles, type SessionFile } from '#/src/tapedeck-session-files'
+import { listSessionFiles, type SessionFile } from '#/src/tapedeck-session-files'
 import { TapedeckSettingTab } from '#/src/tapedeck-setting-tab'
+import { expandHome } from '#/src/tapedeck-shelves'
 import { transcriptSources } from '#/src/tapedeck-sources'
 import type { TranscriptSource } from '#/src/tapedeck-transcript'
 
@@ -101,7 +102,8 @@ export default class TapedeckPlugin extends Plugin {
 
 	private async pickRecent(sources: ReadonlyArray<TranscriptSource>): Promise<void> {
 		const settings = resolveTapedeckSettings(this.settings)
-		const files = await Effect.runPromise(listSessionFiles(sources, settings)).catch(() => [])
+		const listed = await Effect.runPromise(listSessionFiles(settings.tapeShelves)).catch(() => [])
+		const files = listed.filter((file) => sources.includes(file.source))
 		const recent = files.slice(0, Math.max(1, settings.recentCount))
 
 		if (recent.length === 0) {

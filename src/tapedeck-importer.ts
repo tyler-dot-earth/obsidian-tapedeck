@@ -134,11 +134,18 @@ export class TapedeckImporter {
 		}
 
 		const source = sourceFor(frontmatter.harness)
-		const files = await Effect.runPromise(listSessionFiles([source], this.settings()))
-		const match = files.find((session) => basename(session.path).includes(frontmatter.session_id))
+		const files = await Effect.runPromise(listSessionFiles(this.settings().tapeShelves))
+
+		const match = files.find(
+			(session) =>
+				session.source.harness === source.harness &&
+				basename(session.path).includes(frontmatter.session_id),
+		)
 
 		if (match === undefined) {
-			throw new Error(`No ${source.label} session file found for ${frontmatter.session_id}`)
+			throw new Error(
+				`No ${source.label} session file for ${frontmatter.session_id} on your tape shelves`,
+			)
 		}
 
 		return this.importFile(match.path, source)

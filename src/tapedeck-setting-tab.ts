@@ -1,5 +1,3 @@
-import { homedir } from 'node:os'
-
 import { Option, Schema } from 'effect'
 import { type App, Plugin, PluginSettingTab, type SettingDefinitionItem } from 'obsidian'
 
@@ -9,10 +7,6 @@ import {
 	resolveTapedeckSettings,
 	withTapedeckSetting,
 } from '#/src/tapedeck-plugin-settings'
-import { defaultSourceDirectory } from '#/src/tapedeck-session-files'
-import { claudeCodeSource } from '#/src/tapedeck-source-claude-code'
-import { codexSource } from '#/src/tapedeck-source-codex'
-import { piSource } from '#/src/tapedeck-source-pi'
 
 /** Plugin settings tab: where the tapes live, how notes come out, what gets blurred. */
 export class TapedeckSettingTab extends PluginSettingTab {
@@ -24,39 +18,10 @@ export class TapedeckSettingTab extends PluginSettingTab {
 	}
 
 	override getSettingDefinitions(): SettingDefinitionItem[] {
-		const home = homedir()
-
 		return [
 			{
 				name: '📺 Sources',
 				desc: 'Where each agent keeps its session files. Empty means the default for this OS.',
-			},
-			{
-				name: 'Claude Code sessions',
-				desc: 'Folder of project folders with <session-id>.jsonl files.',
-				control: {
-					type: 'text',
-					key: 'claudeCodeDirectory',
-					placeholder: defaultSourceDirectory(claudeCodeSource, home),
-				},
-			},
-			{
-				name: 'Codex CLI sessions',
-				desc: 'Folder with YYYY/MM/DD/rollout-*.jsonl files.',
-				control: {
-					type: 'text',
-					key: 'codexDirectory',
-					placeholder: defaultSourceDirectory(codexSource, home),
-				},
-			},
-			{
-				name: 'Pi sessions',
-				desc: 'Folder of --<cwd>-- folders with <time>_<id>.jsonl files.',
-				control: {
-					type: 'text',
-					key: 'piDirectory',
-					placeholder: defaultSourceDirectory(piSource, home),
-				},
 			},
 			{
 				name: 'Recent sessions to list',
