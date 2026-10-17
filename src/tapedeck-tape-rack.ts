@@ -13,6 +13,7 @@ import {
 
 import { mapWithLimit } from '#/src/tapedeck-concurrency'
 import {
+	allFolded,
 	groupTapes,
 	type RackGroup,
 	type RackGrouping,
@@ -25,6 +26,7 @@ import {
 	rowClickAction,
 	stateBadges,
 	stateTooltips,
+	toggleAllFolds,
 } from '#/src/tapedeck-rack-list'
 import type { SessionFile } from '#/src/tapedeck-session-files'
 import { type TapeInfoCache, tapeRow } from '#/src/tapedeck-tape-info'
@@ -104,6 +106,8 @@ export class TapeRackView extends ItemView {
 	private notesTimer: number | undefined
 	private groupDropdown: DropdownComponent | undefined
 	private hideToggle: ToggleComponent | undefined
+	private foldButton: ExtraButtonComponent | undefined
+	private groups: ReadonlyArray<RackGroup> = []
 	private importButton: ButtonComponent | undefined
 	private clearButton: ButtonComponent | undefined
 	private readonly statusEl = createDiv({ cls: 'tapedeck-rack-status' })
@@ -181,6 +185,11 @@ export class TapeRackView extends ItemView {
 		search.addEventListener('input', () => {
 			this.query = search.value
 			this.limit = pageSize
+			this.render()
+		})
+
+		this.foldButton = new ExtraButtonComponent(top).onClick(() => {
+			this.collapsed = toggleAllFolds(this.groups, this.collapsed)
 			this.render()
 		})
 
@@ -327,6 +336,7 @@ export class TapeRackView extends ItemView {
 	private render(): void {
 		const visible = rackTapes(this.rows, this.query, this.hideInVault)
 		const groups = groupTapes(visible, this.groupBy)
+		this.groups = groups
 		const items = rackItems(groups, this.groupBy, this.collapsed)
 		const scrollTop = this.listEl.scrollTop
 		this.listEl.empty()
@@ -338,6 +348,21 @@ export class TapeRackView extends ItemView {
 		this.renderListEnd(items.length, visible.length)
 		this.listEl.scrollTop = scrollTop
 		this.updateStatus(visible)
+		this.updateFoldButton()
+	}
+
+	/** Shown only while grouping; folds every group, or unfolds them when all are folded. */
+	private updateFoldButton(): void {
+		const button = this.foldButton
+
+		if (button === undefined) {
+			return
+		}
+
+		const folded = allFolded(this.groups, this.collapsed)
+		button.extraSettingsEl.toggleClass('is-hidden', this.groupBy === 'none')
+		button.setIcon(folded ? 'chevrons-up-down' : 'chevrons-down-up')
+		button.setTooltip(folded ? 'Expand all groups' : 'Collapse all groups')
 	}
 
 	private renderItem(item: RackItem): void {

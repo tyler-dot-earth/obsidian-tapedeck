@@ -256,3 +256,7 @@
 		opacity: 1;
 	}
 }
+
+.tapedeck-rack-header .clickable-icon.is-hidden {
+	display: none;
+}

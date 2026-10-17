@@ -1,12 +1,14 @@
 import { assert, describe, it } from '@effect/vitest'
 
 import {
+	allFolded,
 	defaultRackGrouping,
 	groupTapes,
 	rackItems,
 	rackSummary,
 	rackTapes,
 	rowClickAction,
+	toggleAllFolds,
 } from '#/src/tapedeck-rack-list'
 import type { TapeRow } from '#/src/tapedeck-tape-list'
 
@@ -80,6 +82,29 @@ describe('rack filtering and grouping', () => {
 
 		assert.deepStrictEqual(lines, ['# billing', '# demo', 'b', '# No project', 'd'])
 		assert.strictEqual(rackItems(groupTapes(rows, 'none'), 'none', new Set()).length, 4)
+	})
+})
+
+const keys = (set: ReadonlySet<string>): Array<string> => [...set]
+
+describe('folding all groups', () => {
+	const groups = groupTapes(rows, 'project')
+
+	it('folds every group, then unfolds them', () => {
+		const folded = toggleAllFolds(groups, new Set())
+		assert.deepStrictEqual(keys(folded), ['billing', 'demo', ''])
+		assert.isTrue(allFolded(groups, folded))
+		assert.deepStrictEqual(keys(toggleAllFolds(groups, folded)), [])
+	})
+
+	it('folds the rest when only some groups are folded', () => {
+		const some = new Set(['demo'])
+		assert.isFalse(allFolded(groups, some))
+		assert.isTrue(allFolded(groups, toggleAllFolds(groups, some)))
+	})
+
+	it('treats no groups as not folded', () => {
+		assert.isFalse(allFolded([], new Set()))
 	})
 })
 

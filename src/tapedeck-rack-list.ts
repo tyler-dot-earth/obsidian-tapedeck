@@ -85,6 +85,19 @@ export const rackItems = (
 		return [{ kind: 'group', group, collapsed: isCollapsed }, ...(isCollapsed ? [] : tapes)]
 	})
 
+/** Whether every group shown is folded. */
+export const allFolded = (
+	groups: ReadonlyArray<RackGroup>,
+	collapsed: ReadonlySet<string>,
+): boolean => groups.length > 0 && groups.every((group) => collapsed.has(group.key))
+
+/** The fold-all button: expands everything when all groups are folded, else folds them all. */
+export const toggleAllFolds = (
+	groups: ReadonlyArray<RackGroup>,
+	collapsed: ReadonlySet<string>,
+): ReadonlySet<string> =>
+	allFolded(groups, collapsed) ? new Set() : new Set(groups.map((group) => group.key))
+
 /** What clicking a row does: open the note when there is one, otherwise import the tape. */
 export const rowClickAction = (row: TapeRow): 'open' | 'import' =>
 	isInVault(row) && row.notePath !== undefined ? 'open' : 'import'
