@@ -2,6 +2,10 @@
 
 Every agent session is a tape. Pop a Claude Code, ChatGPT / Codex, or Pi session into the deck and get a note you can actually read, labelled and ready to rewind.
 
+## Install
+
+Install [Tapedeck from Obsidian community plugins](https://community.obsidian.md/plugins/tapedeck), or search for Tapedeck under **Settings → Community plugins → Browse**.
+
 ## Use
 
 Requires Obsidian 1.13.0 or newer, on desktop.
