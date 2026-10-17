@@ -297,3 +297,24 @@
 .tapedeck-notice-link {
 	cursor: pointer;
 }
+
+/* 📼 Tape preview */
+.tapedeck-preview {
+	width: min(90vw, 760px);
+}
+
+.tapedeck-preview-meta {
+	margin-bottom: var(--size-4-2);
+	font-size: var(--font-ui-small);
+	color: var(--text-muted);
+}
+
+.tapedeck-preview-body {
+	max-height: 60vh;
+	overflow-y: auto;
+	padding: var(--size-4-2) var(--size-4-3);
+	border: var(--border-width) solid var(--background-modifier-border);
+	border-radius: var(--radius-m);
+	background-color: var(--background-primary-alt);
+	user-select: text;
+}

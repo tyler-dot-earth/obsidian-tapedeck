@@ -12,6 +12,8 @@ import {
 } from 'obsidian'
 
 import { mapWithLimit } from '#/src/tapedeck-concurrency'
+import { needsConfirm, type TapePreview } from '#/src/tapedeck-preview'
+import { ConfirmImportModal, TapePreviewModal } from '#/src/tapedeck-preview-modal'
 import {
 	allFolded,
 	groupTapes,
@@ -62,6 +64,8 @@ export interface TapeRackHost {
 		files: ReadonlyArray<SessionFile>,
 	) => Promise<ReadonlyArray<TapeImportResult>>
 	readonly openNote: (path: string) => Promise<void>
+	/** Reads a tape for the preview, without importing it. */
+	readonly preview: (file: SessionFile) => Promise<TapePreview>
 }
 
 /** Lines drawn at first, and added per "Show more". The search always covers every tape. */
@@ -221,7 +225,7 @@ export class TapeRackView extends ItemView {
 		header.append(this.statusEl, this.selectionEl)
 
 		this.importButton = new ButtonComponent(this.selectionEl).setCta().onClick(() => {
-			void this.importSelected()
+			this.importSelected()
 		})
 
 		this.clearButton = new ButtonComponent(this.selectionEl).setButtonText('Clear').onClick(() => {
@@ -447,10 +451,7 @@ export class TapeRackView extends ItemView {
 		el.toggleClass('is-failed', outcome?.kind === 'failed')
 		el.toggleClass('is-flash', (this.flashUntil.get(row.path) ?? 0) > Date.now())
 
-		el.setAttr(
-			'aria-label',
-			rowClickAction(row) === 'open' ? 'Click to open the note' : 'Click to import',
-		)
+		el.setAttr('aria-label', rowClickAction(row) === 'open' ? 'Open the note' : 'Preview this tape')
 
 		const box = el.createEl('input', { type: 'checkbox', cls: 'tapedeck-rack-check' })
 		box.checked = this.selection.has(row.path)
@@ -580,16 +581,55 @@ export class TapeRackView extends ItemView {
 	}
 
 	private async clickRow(row: TapeRow): Promise<void> {
-		await (rowClickAction(row) === 'open' && row.notePath !== undefined
-			? this.host.openNote(row.notePath)
-			: this.importRows([row]))
+		if (rowClickAction(row) === 'open' && row.notePath !== undefined) {
+			await this.host.openNote(row.notePath)
+
+			return
+		}
+
+		this.openPreview(row)
 	}
 
-	private async importSelected(): Promise<void> {
+	private openPreview(row: TapeRow): void {
+		const file = this.files.find((candidate) => candidate.path === row.path)
+
+		if (file === undefined) {
+			return
+		}
+
+		const notePath = row.notePath
+
+		new TapePreviewModal(this.app, {
+			row,
+			load: async (): Promise<TapePreview> => this.host.preview(file),
+			onImport: (): void => {
+				void this.importRows([row])
+			},
+			onOpenNote:
+				notePath === undefined
+					? undefined
+					: (): void => {
+							void this.host.openNote(notePath)
+						},
+		}).open()
+	}
+
+	private importSelected(): void {
 		const chosen = this.rows.filter((row) => this.selection.has(row.path))
-		this.selection = new Set()
-		this.render()
-		await this.importRows(chosen)
+
+		const run = (): void => {
+			this.selection = new Set()
+			this.render()
+			void this.importRows(chosen)
+		}
+
+		if (needsConfirm(chosen.length)) {
+			new ConfirmImportModal(this.app, chosen.length, run).open()
+
+			return
+		}
+
+		run()
 	}
 
 	/** Imports rows, keeping them in place with a badge for how each went. */

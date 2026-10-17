@@ -20,6 +20,7 @@ import {
 	loadTapedeckPluginSettings,
 	resolveTapedeckSettings,
 } from '#/src/tapedeck-plugin-settings'
+import type { TapePreview } from '#/src/tapedeck-preview'
 import { importSummary, type TapeImportResult } from '#/src/tapedeck-rack-list'
 import { listSessionFiles, type SessionFile } from '#/src/tapedeck-session-files'
 import { TapedeckSettingTab } from '#/src/tapedeck-setting-tab'
@@ -73,6 +74,7 @@ export default class TapedeckPlugin extends Plugin {
 					importTapes: async (files): Promise<ReadonlyArray<TapeImportResult>> =>
 						this.importAndReport(files),
 					openNote: async (path): Promise<void> => this.openNote(path),
+					preview: async (file): Promise<TapePreview> => this.importer.preview(file),
 				}),
 		)
 

@@ -108,9 +108,12 @@ export const toggleAllFolds = (
 ): ReadonlySet<string> =>
 	allFolded(groups, collapsed) ? new Set() : new Set(groups.map((group) => group.key))
 
-/** What clicking a row does: open the note when there is one, otherwise import the tape. */
-export const rowClickAction = (row: TapeRow): 'open' | 'import' =>
-	isInVault(row) && row.notePath !== undefined ? 'open' : 'import'
+/**
+ * What clicking a row does: open the note when there is one, otherwise show a preview. A click
+ * never imports; the preview and the row button do that.
+ */
+export const rowClickAction = (row: TapeRow): 'open' | 'preview' =>
+	isInVault(row) && row.notePath !== undefined ? 'open' : 'preview'
 
 /** How importing one tape went. */
 export type TapeImportResult =

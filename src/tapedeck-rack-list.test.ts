@@ -114,8 +114,8 @@ describe('folding all groups', () => {
 })
 
 describe('rack rows', () => {
-	it('opens notes that exist and imports the rest', () => {
-		assert.deepStrictEqual(rows.map(rowClickAction), ['open', 'import', 'open', 'import'])
+	it('opens notes that exist and previews the rest, never importing on click', () => {
+		assert.deepStrictEqual(rows.map(rowClickAction), ['open', 'preview', 'open', 'preview'])
 	})
 
 	it('summarises counts', () => {

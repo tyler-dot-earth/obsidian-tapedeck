@@ -9,8 +9,19 @@ import type { TapedeckParseError } from '#/src/tapedeck-errors'
 import { parseTimestamp, transcriptFilename } from '#/src/tapedeck-filename'
 import { resolveImages } from '#/src/tapedeck-image-import'
 import type { ResolvedTapedeckSettings } from '#/src/tapedeck-plugin-settings'
-import { type PreviousNote, renderTranscriptNote } from '#/src/tapedeck-render'
-import { listSessionFiles, readSessionFile } from '#/src/tapedeck-session-files'
+import {
+	previewBytes,
+	previewTranscript,
+	stripFrontmatter,
+	type TapePreview,
+} from '#/src/tapedeck-preview'
+import { type PreviousNote, type RenderOptions, renderTranscriptNote } from '#/src/tapedeck-render'
+import {
+	listSessionFiles,
+	readHead,
+	readSessionFile,
+	type SessionFile,
+} from '#/src/tapedeck-session-files'
 import { detectSource, sourceFor } from '#/src/tapedeck-sources'
 import type { ImportedNote, NoteLookup } from '#/src/tapedeck-tape-list'
 import { clampTitle, titleFields } from '#/src/tapedeck-tape-title'
@@ -133,6 +144,51 @@ export class TapedeckImporter {
 		})
 	}
 
+	/**
+	 * A read-only preview of a tape: its first turns rendered like the note, without saving images or
+	 * touching the vault. Tapes over 8 MB are previewed from their start.
+	 */
+	async preview(file: SessionFile): Promise<TapePreview> {
+		const partial = file.size > previewBytes
+		const text = await readHead(file.path, Math.min(file.size, previewBytes))
+
+		const transcript = await this.withThreadName(
+			file.path,
+			parseOrThrow(text, file.source, basename(file.path)),
+		)
+
+		const markdown = renderTranscriptNote(
+			previewTranscript(transcript),
+			this.renderOptions(transcript, { created: undefined, project: undefined }),
+		)
+
+		return {
+			title: transcript.title,
+			startedAt: transcript.startedAt,
+			turns: transcript.turns.length,
+			partial,
+			markdown: stripFrontmatter(markdown),
+		}
+	}
+
+	private renderOptions(transcript: Transcript, previous: PreviousNote): RenderOptions {
+		const settings = this.settings()
+
+		return {
+			foldToolCalls: settings.foldToolCalls,
+			toolOutput: settings.toolOutput,
+			truncateLines: settings.truncateLines,
+			includeThinking: settings.includeThinking,
+			noteStyle: settings.noteStyle,
+			machine: hostname(),
+			resume: sourceFor(transcript.harness).resumeCommand(transcript),
+			importedAt: new Date(),
+			redactHome: settings.redactHomePaths ? homedir() : undefined,
+			redactSecrets: settings.redactSecrets,
+			previous,
+		}
+	}
+
 	/** Writes a transcript note, updating the existing note for the same session. */
 	async writeTranscript(parsed: Transcript): Promise<ImportOutcome> {
 		const settings = this.settings()
@@ -146,19 +202,10 @@ export class TapedeckImporter {
 			save: (name, bytes) => this.saveAttachment(name, bytes, notePath),
 		})
 
-		const markdown = renderTranscriptNote(transcript, {
-			foldToolCalls: settings.foldToolCalls,
-			toolOutput: settings.toolOutput,
-			truncateLines: settings.truncateLines,
-			includeThinking: settings.includeThinking,
-			noteStyle: settings.noteStyle,
-			machine: hostname(),
-			resume: sourceFor(transcript.harness).resumeCommand(transcript),
-			importedAt: new Date(),
-			redactHome: settings.redactHomePaths ? homedir() : undefined,
-			redactSecrets: settings.redactSecrets,
-			previous: this.previousNote(existing),
-		})
+		const markdown = renderTranscriptNote(
+			transcript,
+			this.renderOptions(transcript, this.previousNote(existing)),
+		)
 
 		if (existing !== undefined) {
 			await this.app.vault.modify(existing, markdown)
