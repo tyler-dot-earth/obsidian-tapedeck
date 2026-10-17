@@ -4,6 +4,10 @@
 	"private": true,
 	"description": "Import coding agent transcripts into Obsidian",
 	"license": "MIT",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/tyler-dot-earth/obsidian-tapedeck"
+	},
 	"type": "module",
 	"main": "main.js",
 	"imports": {
