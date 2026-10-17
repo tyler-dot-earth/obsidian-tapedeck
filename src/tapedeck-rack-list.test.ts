@@ -1,6 +1,7 @@
 import { assert, describe, it } from '@effect/vitest'
 
 import {
+	defaultRackGrouping,
 	groupTapes,
 	rackItems,
 	rackSummary,
@@ -40,6 +41,10 @@ describe('rack filtering and grouping', () => {
 		assert.deepStrictEqual(paths(rackTapes(rows, '', true)), ['b', 'd'])
 		assert.deepStrictEqual(paths(rackTapes(rows, 'billing', true)), [])
 		assert.deepStrictEqual(paths(rackTapes(rows, 'work', false)), ['a'])
+	})
+
+	it('groups by project unless the rack was set otherwise', () => {
+		assert.strictEqual(defaultRackGrouping, 'project')
 	})
 
 	it('groups by project in newest-first order', () => {

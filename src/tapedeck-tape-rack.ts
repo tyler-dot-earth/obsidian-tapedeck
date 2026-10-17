@@ -16,6 +16,7 @@ import {
 	groupTapes,
 	type RackGroup,
 	type RackGrouping,
+	defaultRackGrouping,
 	rackGroupingLabels,
 	type RackItem,
 	rackItems,
@@ -72,7 +73,8 @@ const staleMs = 30_000
 const notesSettleMs = 400
 
 const RackViewState = Schema.Struct({
-	groupBy: Schema.optionalKey(Schema.Literals(['none', 'project', 'shelf'])),
+	/** Saved as `grouping`; layouts from before "By project" became the default used `groupBy`. */
+	grouping: Schema.optionalKey(Schema.Literals(['none', 'project', 'shelf'])),
 	hideInVault: Schema.optionalKey(Schema.Boolean),
 })
 
@@ -91,7 +93,7 @@ export class TapeRackView extends ItemView {
 	private selection: TapeSelection = new Set()
 	private collapsed: ReadonlySet<string> = new Set()
 	private query = ''
-	private groupBy: RackGrouping = 'none'
+	private groupBy: RackGrouping = defaultRackGrouping
 	private hideInVault = false
 	private limit = pageSize
 	private loaded = 0
@@ -126,13 +128,13 @@ export class TapeRackView extends ItemView {
 	}
 
 	override getState(): RackViewState {
-		return { groupBy: this.groupBy, hideInVault: this.hideInVault }
+		return { grouping: this.groupBy, hideInVault: this.hideInVault }
 	}
 
 	override async setState(state: RackViewState, result: ViewStateResult): Promise<void> {
 		// The layout file is user data, so check it even though the signature names the shape.
 		const saved = Option.getOrUndefined(Schema.decodeUnknownOption(RackViewState)(state))
-		this.groupBy = saved?.groupBy ?? this.groupBy
+		this.groupBy = saved?.grouping ?? this.groupBy
 		this.hideInVault = saved?.hideInVault ?? this.hideInVault
 		this.groupDropdown?.setValue(this.groupBy)
 		this.hideToggle?.setValue(this.hideInVault)

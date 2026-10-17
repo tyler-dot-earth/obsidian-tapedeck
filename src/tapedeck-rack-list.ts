@@ -5,6 +5,9 @@ import { filterTapes, isInVault, type TapeRow, type TapeState } from '#/src/tape
 /** How the rack groups its rows. */
 export type RackGrouping = 'none' | 'project' | 'shelf'
 
+/** Grouping for a rack opened for the first time. */
+export const defaultRackGrouping: RackGrouping = 'project'
+
 /** Labels for the grouping dropdown. */
 export const rackGroupingLabels: Record<RackGrouping, string> = {
 	none: 'No groups',
