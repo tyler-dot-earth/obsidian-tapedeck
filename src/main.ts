@@ -221,7 +221,7 @@ export default class TapedeckPlugin extends Plugin {
 		})
 
 		this.addCommand({
-			id: 'import-recent-sessions',
+			id: 'import-from-shelves',
 			name: '📼 Import from tape shelves',
 			callback: () => {
 				const { tapeShelves } = resolveTapedeckSettings(this.settings)
