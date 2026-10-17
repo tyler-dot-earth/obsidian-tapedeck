@@ -33,3 +33,32 @@ export const mapWithLimit = <A, B>(
 		results.toSorted((left, right) => left.index - right.index).map((entry) => entry.value),
 	)
 }
+
+/** Main-thread work allowed between yields while reading tapes, so typing and scrolling stay smooth. */
+const sliceBudgetMs = 12
+
+/**
+ * Hands the main thread back to the UI once a time slice is used up. Tape reads are async, but
+ * parsing their heads is not; calling `pause` after each one keeps a long listing from freezing the
+ * window while Obsidian starts or the user types.
+ */
+export class TimeSlicer {
+	private readonly budgetMs: number
+	private sliceStart = performance.now()
+
+	constructor(budgetMs: number = sliceBudgetMs) {
+		this.budgetMs = budgetMs
+	}
+
+	async pause(): Promise<void> {
+		if (performance.now() - this.sliceStart < this.budgetMs) {
+			return
+		}
+
+		await new Promise<void>((resolve) => {
+			setTimeout(resolve, 0)
+		})
+
+		this.sliceStart = performance.now()
+	}
+}

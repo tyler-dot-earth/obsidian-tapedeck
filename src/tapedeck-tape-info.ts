@@ -4,6 +4,7 @@ import { basename, dirname, relative, sep } from 'node:path'
 import { Result } from 'effect'
 
 import { CodexThreadNames } from '#/src/tapedeck-codex-names'
+import { TimeSlicer } from '#/src/tapedeck-concurrency'
 import { ProjectPlaces } from '#/src/tapedeck-project-places'
 import { placeFromEncodedName, type ProjectPlace } from '#/src/tapedeck-projects'
 import { readHead, readTail, type SessionFile } from '#/src/tapedeck-session-files'
@@ -123,6 +124,7 @@ export class TapeInfoCache {
 	private readonly entries = new Map<string, TapeInfo>()
 	private readonly names: CodexThreadNames
 	private readonly places: ProjectPlaces
+	private readonly slicer = new TimeSlicer()
 
 	constructor(
 		names: CodexThreadNames = new CodexThreadNames(),
@@ -177,6 +179,7 @@ export class TapeInfoCache {
 
 		const info = await readInfo(file, this.places)
 		this.entries.set(TapeInfoCache.key(file), info)
+		await this.slicer.pause()
 
 		return this.named(file, info)
 	}
