@@ -14,7 +14,6 @@ import {
 	ImportFileModal,
 	type SessionChoice,
 	SessionSuggestModal,
-	SourceSuggestModal,
 } from '#/src/tapedeck-modals'
 import {
 	type TapedeckPluginSettings,
@@ -25,9 +24,8 @@ import {
 import { sessionChoice } from '#/src/tapedeck-session-choice'
 import { listSessionFiles, type SessionFile } from '#/src/tapedeck-session-files'
 import { TapedeckSettingTab } from '#/src/tapedeck-setting-tab'
-import { expandHome } from '#/src/tapedeck-shelves'
-import { transcriptSources } from '#/src/tapedeck-sources'
-import type { TranscriptSource } from '#/src/tapedeck-transcript'
+import { type ShelfPick, ShelfSuggestModal } from '#/src/tapedeck-shelf-modals'
+import { expandHome, shelfName, type TapeShelf } from '#/src/tapedeck-shelves'
 
 export default class TapedeckPlugin extends Plugin {
 	override settings: TapedeckPluginSettings = defaultTapedeckPluginSettings
@@ -58,18 +56,18 @@ export default class TapedeckPlugin extends Plugin {
 			id: 'import-session-file',
 			name: '⏏️ Import session file',
 			callback: () => {
-				new ImportFileModal(this.app, (choice) => {
-					void this.importChoice(choice)
-				}).open()
+				this.openImportFile()
 			},
 		})
 
 		this.addCommand({
 			id: 'import-recent-sessions',
-			name: '📼 Import recent sessions',
+			name: '📼 Import from tape shelves',
 			callback: () => {
-				new SourceSuggestModal(this.app, (source) => {
-					void this.pickRecent(source === 'all' ? transcriptSources : [source])
+				const { tapeShelves } = resolveTapedeckSettings(this.settings)
+
+				new ShelfSuggestModal(this.app, tapeShelves, (pick) => {
+					void this.pickShelf(pick, tapeShelves)
 				}).open()
 			},
 		})
@@ -94,20 +92,37 @@ export default class TapedeckPlugin extends Plugin {
 		})
 	}
 
+	private openImportFile(): void {
+		new ImportFileModal(this.app, (choice) => {
+			void this.importChoice(choice)
+		}).open()
+	}
+
+	private async pickShelf(pick: ShelfPick, shelves: ReadonlyArray<TapeShelf>): Promise<void> {
+		if (pick.kind === 'file') {
+			this.openImportFile()
+
+			return
+		}
+
+		await (pick.kind === 'all'
+			? this.pickRecent(shelves, 'your enabled tape shelves')
+			: this.pickRecent([{ ...pick.shelf, enabled: true }], shelfName(pick.shelf)))
+	}
+
 	private async importChoice(choice: FileChoice): Promise<void> {
 		await (choice.kind === 'path'
 			? this.run(this.importer.importFile(expandHome(choice.path), undefined))
 			: this.run(this.importer.importText(choice.text, undefined, choice.name)))
 	}
 
-	private async pickRecent(sources: ReadonlyArray<TranscriptSource>): Promise<void> {
+	private async pickRecent(shelves: ReadonlyArray<TapeShelf>, where: string): Promise<void> {
 		const settings = resolveTapedeckSettings(this.settings)
-		const listed = await Effect.runPromise(listSessionFiles(settings.tapeShelves)).catch(() => [])
-		const files = listed.filter((file) => sources.includes(file.source))
+		const files = await Effect.runPromise(listSessionFiles(shelves)).catch(() => [])
 		const recent = files.slice(0, Math.max(1, settings.recentCount))
 
 		if (recent.length === 0) {
-			new Notice('📺 Tapedeck: no tapes found. Check the source folders in settings.')
+			new Notice(`📺 Tapedeck: no tapes found on ${where}. Check Tape shelves in settings.`)
 
 			return
 		}

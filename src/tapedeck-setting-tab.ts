@@ -1,12 +1,21 @@
 import { Option, Schema } from 'effect'
-import { type App, Plugin, PluginSettingTab, type SettingDefinitionItem } from 'obsidian'
+import {
+	type App,
+	Plugin,
+	PluginSettingTab,
+	type SettingDefinition,
+	type SettingDefinitionItem,
+} from 'obsidian'
 
 import {
 	type TapedeckPluginSettingsHost,
 	isTapedeckSettingKey,
 	resolveTapedeckSettings,
 	withTapedeckSetting,
+	withTapeShelves,
 } from '#/src/tapedeck-plugin-settings'
+import { ShelfEditModal, shelfSummary } from '#/src/tapedeck-shelf-modals'
+import { shelfName, type TapeShelf } from '#/src/tapedeck-shelves'
 
 /** Plugin settings tab: where the tapes live, how notes come out, what gets blurred. */
 export class TapedeckSettingTab extends PluginSettingTab {
@@ -19,13 +28,10 @@ export class TapedeckSettingTab extends PluginSettingTab {
 
 	override getSettingDefinitions(): SettingDefinitionItem[] {
 		return [
+			...this.shelfDefinitions(),
 			{
-				name: '📺 Sources',
-				desc: 'Where each agent keeps its session files. Empty means the default for this OS.',
-			},
-			{
-				name: 'Recent sessions to list',
-				desc: 'How many tapes Import recent sessions shows.',
+				name: 'Recent tapes to list',
+				desc: 'How many tapes Import from tape shelves shows.',
 				control: { type: 'number', key: 'recentCount', placeholder: '10' },
 			},
 			{ name: '🏷️ Notes', desc: 'How a transcript lands in the vault.' },
@@ -87,6 +93,93 @@ export class TapedeckSettingTab extends PluginSettingTab {
 				control: { type: 'toggle', key: 'redactSecrets' },
 			},
 		]
+	}
+
+	private shelves(): ReadonlyArray<TapeShelf> {
+		return resolveTapedeckSettings(this.settingsHost.settings).tapeShelves
+	}
+
+	private shelfDefinitions(): SettingDefinitionItem[] {
+		const shelves = this.shelves()
+
+		return [
+			{
+				name: '📼 Tape shelves',
+				desc: 'Folders Tapedeck imports from, saved so you do not have to pick a path every time. Import from tape shelves lists tapes from every enabled shelf. ~ means your home folder. A shelf whose folder is missing is skipped.',
+				aliases: ['source folders', 'session folders', 'sources'],
+			},
+			{
+				type: 'list',
+				heading: 'Shelves',
+				emptyState: 'No shelves yet. Add a folder, or restore the defaults.',
+				items: shelves.map((shelf, index) => this.shelfRow(shelf, index)),
+				onDelete: (index) => {
+					this.saveShelves(shelves.filter((_shelf, at) => at !== index))
+				},
+				onReorder: (from, to) => {
+					const moved = shelves.filter((_shelf, at) => at !== from)
+					moved.splice(to, 0, ...shelves.slice(from, from + 1))
+					this.saveShelves(moved)
+				},
+				addItem: {
+					name: 'Add shelf',
+					action: () => {
+						new ShelfEditModal(this.app, undefined, (shelf) => {
+							this.saveShelves([...this.shelves(), shelf])
+						}).open()
+					},
+				},
+			},
+			{
+				name: 'Restore default shelves',
+				desc: 'Replace the list with Claude Code (~/.claude/projects), Codex CLI (~/.codex/sessions), and Pi (~/.pi/agent/sessions).',
+				action: () => {
+					this.saveShelves(undefined)
+				},
+			},
+		]
+	}
+
+	private shelfRow(shelf: TapeShelf, index: number): SettingDefinition {
+		return {
+			name: shelfName(shelf),
+			desc: shelfSummary(shelf),
+			aliases: [shelf.path],
+			render: (setting) => {
+				setting
+					.setName(shelfName(shelf))
+					.setDesc(shelfSummary(shelf))
+					.addExtraButton((button) =>
+						button
+							.setIcon('pencil')
+							.setTooltip('Edit shelf')
+							.onClick(() => {
+								new ShelfEditModal(this.app, shelf, (edited) => {
+									this.replaceShelf(index, edited)
+								}).open()
+							}),
+					)
+					.addToggle((toggle) =>
+						toggle
+							.setTooltip('Import from this shelf')
+							.setValue(shelf.enabled)
+							.onChange((enabled) => {
+								this.replaceShelf(index, { ...shelf, enabled })
+							}),
+					)
+			},
+		}
+	}
+
+	private replaceShelf(index: number, shelf: TapeShelf): void {
+		this.saveShelves(this.shelves().map((current, at) => (at === index ? shelf : current)))
+	}
+
+	/** Saves the list (`undefined` restores the defaults) and redraws the rows. */
+	private saveShelves(shelves: ReadonlyArray<TapeShelf> | undefined): void {
+		this.settingsHost.settings = withTapeShelves(this.settingsHost.settings, shelves)
+		void this.settingsHost.saveTapedeckPluginSettings()
+		this.update()
 	}
 
 	override getControlValue(key: string): unknown {

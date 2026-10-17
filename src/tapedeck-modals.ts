@@ -1,8 +1,6 @@
 import { type App, FuzzySuggestModal, Modal, Setting } from 'obsidian'
 
 import type { SessionFile } from '#/src/tapedeck-session-files'
-import { transcriptSources } from '#/src/tapedeck-sources'
-import type { TranscriptSource } from '#/src/tapedeck-transcript'
 
 /** One row in the recent-sessions picker. `undefined` file means "import every listed session". */
 export interface SessionChoice {
@@ -35,29 +33,6 @@ export class SessionSuggestModal extends FuzzySuggestModal<SessionChoice> {
 	}
 
 	override onChooseItem(item: SessionChoice): void {
-		this.onChoose(item)
-	}
-}
-
-/** Picks one source, or every source. */
-export class SourceSuggestModal extends FuzzySuggestModal<TranscriptSource | 'all'> {
-	private readonly onChoose: (source: TranscriptSource | 'all') => void
-
-	constructor(app: App, onChoose: (source: TranscriptSource | 'all') => void) {
-		super(app)
-		this.onChoose = onChoose
-		this.setPlaceholder('📺 Which deck?')
-	}
-
-	override getItems(): Array<TranscriptSource | 'all'> {
-		return ['all', ...transcriptSources]
-	}
-
-	override getItemText(item: TranscriptSource | 'all'): string {
-		return item === 'all' ? '📼 All decks' : `${item.emoji} ${item.label}`
-	}
-
-	override onChooseItem(item: TranscriptSource | 'all'): void {
 		this.onChoose(item)
 	}
 }
