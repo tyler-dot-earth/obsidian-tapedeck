@@ -17,6 +17,79 @@ import {
 import { ShelfEditModal, shelfSummary } from '#/src/tapedeck-shelf-modals'
 import { shelfName, type TapeShelf } from '#/src/tapedeck-shelves'
 
+/** 🏷️ Notes: how a transcript lands in the vault. */
+const noteSettings: SettingDefinition[] = [
+	{
+		name: 'Import folder',
+		desc: 'Created if missing.',
+		control: { type: 'folder', key: 'importFolder', placeholder: 'Transcripts' },
+	},
+	{
+		name: 'Filename pattern',
+		desc: 'Tokens: {date} {time} {harness} {session} {title}.',
+		control: { type: 'text', key: 'filenamePattern', placeholder: '{date} {harness} {title}' },
+	},
+	{
+		name: 'Note style',
+		desc: 'Raw keeps every tool call; Summary lists tools per turn.',
+		control: { type: 'dropdown', key: 'noteStyle', options: { raw: 'Raw', summary: 'Summary' } },
+	},
+	{
+		name: 'Fold tool calls',
+		desc: 'Tool callouts start collapsed.',
+		control: { type: 'toggle', key: 'foldToolCalls' },
+	},
+	{
+		name: 'Tool output',
+		desc: 'Full keeps everything; Truncated keeps the first lines.',
+		control: {
+			type: 'dropdown',
+			key: 'toolOutput',
+			options: { full: 'Full', truncated: 'Truncated', none: 'None' },
+		},
+	},
+	{
+		name: 'Truncate after lines',
+		desc: 'Used when tool output is Truncated.',
+		control: { type: 'number', key: 'truncateLines', placeholder: '40' },
+	},
+	{
+		name: 'Include thinking',
+		desc: 'Keep stored model reasoning in a folded quote.',
+		control: { type: 'toggle', key: 'includeThinking' },
+	},
+]
+
+/** ⏸️ Freeze-frames: images from tapes. */
+const freezeFrameSettings: SettingDefinition[] = [
+	{
+		name: 'Import freeze-frames',
+		desc: 'Save images to your attachment folder, or leave a short note where each one was.',
+		aliases: ['images', 'screenshots', 'attachments'],
+		control: { type: 'toggle', key: 'importImages' },
+	},
+	{
+		name: 'Freeze-frame size limit (MB)',
+		desc: 'Bigger images get a note instead (0 means no limit).',
+		aliases: ['images'],
+		control: { type: 'number', key: 'maxImageMB', placeholder: '0' },
+	},
+]
+
+/** ✂️ Redaction: basic patterns over the whole note. */
+const redactionSettings: SettingDefinition[] = [
+	{
+		name: 'Home folder as ~',
+		desc: 'Rewrite your home directory path to ~.',
+		control: { type: 'toggle', key: 'redactHomePaths' },
+	},
+	{
+		name: 'Mask secrets',
+		desc: 'Basic patterns for keys, tokens, and secrets become [REDACTED], which is not a guarantee.',
+		control: { type: 'toggle', key: 'redactSecrets' },
+	},
+]
+
 /** Plugin settings tab: where the tapes live, how notes come out, what gets blurred. */
 export class TapedeckSettingTab extends PluginSettingTab {
 	private readonly settingsHost: TapedeckPluginSettingsHost
@@ -29,79 +102,9 @@ export class TapedeckSettingTab extends PluginSettingTab {
 	override getSettingDefinitions(): SettingDefinitionItem[] {
 		return [
 			...this.shelfDefinitions(),
-			{ name: '🏷️ Notes', desc: 'How a transcript lands in the vault.' },
-			{
-				name: 'Import folder',
-				desc: 'Created if missing.',
-				control: { type: 'folder', key: 'importFolder', placeholder: 'Transcripts' },
-			},
-			{
-				name: 'Filename pattern',
-				desc: 'Tokens: {date} {time} {harness} {session} {title}.',
-				control: { type: 'text', key: 'filenamePattern', placeholder: '{date} {harness} {title}' },
-			},
-			{
-				name: 'Note style',
-				desc: 'Raw keeps every tool call; Summary lists tools per turn.',
-				control: {
-					type: 'dropdown',
-					key: 'noteStyle',
-					options: { raw: 'Raw', summary: 'Summary' },
-				},
-			},
-			{
-				name: 'Fold tool calls',
-				desc: 'Tool callouts start collapsed.',
-				control: { type: 'toggle', key: 'foldToolCalls' },
-			},
-			{
-				name: 'Tool output',
-				desc: 'Full keeps everything; Truncated keeps the first lines.',
-				control: {
-					type: 'dropdown',
-					key: 'toolOutput',
-					options: { full: 'Full', truncated: 'Truncated', none: 'None' },
-				},
-			},
-			{
-				name: 'Truncate after lines',
-				desc: 'Used when tool output is Truncated.',
-				control: { type: 'number', key: 'truncateLines', placeholder: '40' },
-			},
-			{
-				name: 'Include thinking',
-				desc: 'Keep stored model reasoning in a folded quote.',
-				control: { type: 'toggle', key: 'includeThinking' },
-			},
-			{
-				name: '⏸️ Freeze-frames',
-				desc: 'Images from tapes, saved to your attachment folder and embedded where they appeared.',
-				aliases: ['images', 'screenshots', 'attachments'],
-			},
-			{
-				name: 'Import freeze-frames',
-				desc: 'Save images into the vault, or leave a short note where each one was.',
-				control: { type: 'toggle', key: 'importImages' },
-			},
-			{
-				name: 'Freeze-frame size limit (MB)',
-				desc: 'Bigger images get a note instead (0 means no limit).',
-				control: { type: 'number', key: 'maxImageMB', placeholder: '0' },
-			},
-			{
-				name: '✂️ Redaction',
-				desc: 'Basic patterns applied to the whole note, not a guarantee.',
-			},
-			{
-				name: 'Home folder as ~',
-				desc: 'Rewrite your home directory path to ~.',
-				control: { type: 'toggle', key: 'redactHomePaths' },
-			},
-			{
-				name: 'Mask secrets',
-				desc: 'API keys, tokens, bearer headers, private keys, and key=value secrets become [REDACTED].',
-				control: { type: 'toggle', key: 'redactSecrets' },
-			},
+			{ type: 'group', heading: '🏷️ Notes', items: noteSettings },
+			{ type: 'group', heading: '⏸️ Freeze-frames', items: freezeFrameSettings },
+			{ type: 'group', heading: '✂️ Redaction', items: redactionSettings },
 		]
 	}
 
@@ -114,13 +117,18 @@ export class TapedeckSettingTab extends PluginSettingTab {
 
 		return [
 			{
-				name: '📼 Tape shelves',
-				desc: 'Folders to browse when you import tapes (~ is your home folder).',
-				aliases: ['source folders', 'session folders', 'sources'],
-			},
-			{
 				type: 'list',
-				heading: 'Shelves',
+				heading: '📼 Tape shelves',
+				extraButtons: [
+					(button): void => {
+						button
+							.setIcon('rotate-ccw')
+							.setTooltip('Restore default shelves')
+							.onClick(() => {
+								this.saveShelves(undefined)
+							})
+					},
+				],
 				emptyState: 'No shelves yet. Add a folder, or restore the defaults.',
 				items: shelves.map((shelf, index) => this.shelfRow(shelf, index)),
 				onDelete: (index) => {
@@ -140,13 +148,6 @@ export class TapedeckSettingTab extends PluginSettingTab {
 					},
 				},
 			},
-			{
-				name: 'Restore default shelves',
-				desc: 'Replace the list with Claude Code (~/.claude/projects), Codex CLI (~/.codex/sessions), and Pi (~/.pi/agent/sessions).',
-				action: () => {
-					this.saveShelves(undefined)
-				},
-			},
 		]
 	}
 
@@ -154,7 +155,7 @@ export class TapedeckSettingTab extends PluginSettingTab {
 		return {
 			name: shelfName(shelf),
 			desc: shelfSummary(shelf),
-			aliases: [shelf.path],
+			aliases: [shelf.path, 'shelves', 'source folders', 'session folders'],
 			render: (setting) => {
 				setting
 					.setName(shelfName(shelf))

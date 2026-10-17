@@ -73,7 +73,7 @@ New installs start with one shelf per agent at its default folder:
 
 Pi's default comes from `getSessionsDir()` in [pi's `config.ts`](https://github.com/earendil-works/pi/blob/main/packages/coding-agent/src/config.ts) and its [sessions doc](https://github.com/earendil-works/pi/blob/main/packages/coding-agent/docs/sessions.md). If you moved it with `--session-dir`, `PI_CODING_AGENT_SESSION_DIR`, or pi's `sessionDir` setting, edit the Pi shelf to match.
 
-**Restore default shelves** puts those three back and replaces your list. Upgrading from a version with one folder setting per agent keeps any folder you had set on that agent's shelf.
+The ↺ **Restore default shelves** button in the shelves card puts those three back and replaces your list. Upgrading from a version with one folder setting per agent keeps any folder you had set on that agent's shelf.
 
 ## Sources
 
@@ -136,7 +136,9 @@ Images in a tape are saved into the vault as real files and embedded where they 
 
 ## Settings
 
-- **📼 Tape shelves**: saved folders to import from (see above) and restore defaults. The old "recent sessions to list" setting is gone, since the picker searches every tape; an old value in `data.json` is ignored.
+Each section is its own card.
+
+- **📼 Tape shelves**: saved folders to import from (see above), with the restore defaults button in its header. The old "recent sessions to list" setting is gone, since the picker searches every tape; an old value in `data.json` is ignored.
 - **🏷️ Notes**: import folder, filename pattern (`{date} {time} {harness} {session} {title}`), raw or summary style, fold tool calls, tool output (full, truncated, none), truncate length, include thinking.
 - **⏸️ Freeze-frames**: import images (on by default) and a size limit in MB (0, the default, means no limit). Bigger images get a note instead.
 - **✂️ Redaction**: home folder as `~`, and mask secrets (API keys, GitHub and Slack tokens, AWS keys, JWTs, bearer headers, private keys, `key=value` secrets). These are simple patterns. Read a note before you share it.
