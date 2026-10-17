@@ -213,7 +213,7 @@ describe('tape titles from files', () => {
 		const child = files.findIndex((file) => file.path.includes(ids.codexChild))
 		assert.strictEqual(infos[child]?.kind, 'subagent')
 
-		const rows = files.map((file, index) => tapeRow(file, infos[index], () => undefined, home))
+		const rows = files.map((file, index) => tapeRow(file, infos[index], () => undefined, { home }))
 		const listed = new Set(filterTapes(rows, '').map((row) => row.sessionId))
 		assert.isFalse(listed.has(ids.codexChild))
 		assert.isFalse(listed.has(ids.empty))

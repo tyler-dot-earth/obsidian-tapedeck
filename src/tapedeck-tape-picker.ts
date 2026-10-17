@@ -2,7 +2,7 @@ import { type App, ButtonComponent, Modal, Notice } from 'obsidian'
 
 import { mapWithLimit } from '#/src/tapedeck-concurrency'
 import type { SessionFile } from '#/src/tapedeck-session-files'
-import { type TapeInfo, type TapeInfoCache, tapeRow } from '#/src/tapedeck-tape-info'
+import type { TapeInfo, TapeInfoCache } from '#/src/tapedeck-tape-info'
 import {
 	allShownSelected,
 	clearShown,
@@ -91,7 +91,7 @@ export class TapePickerModal extends Modal {
 				this.loaded += 1
 			}
 
-			return tapeRow(file, info, input.notes)
+			return input.cache.row(file, info, input.notes)
 		})
 	}
 
@@ -166,7 +166,7 @@ export class TapePickerModal extends Modal {
 		const index = this.rowIndex.get(file.path)
 
 		if (index !== undefined) {
-			this.rows[index] = tapeRow(file, info, this.input.notes)
+			this.rows[index] = this.input.cache.row(file, info, this.input.notes)
 		}
 
 		this.loaded += 1

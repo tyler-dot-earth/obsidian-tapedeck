@@ -4,6 +4,8 @@ import { basename, dirname, relative, sep } from 'node:path'
 import { Result } from 'effect'
 
 import { CodexThreadNames } from '#/src/tapedeck-codex-names'
+import { ProjectPlaces } from '#/src/tapedeck-project-places'
+import { placeFromEncodedName, type ProjectPlace } from '#/src/tapedeck-projects'
 import { readHead, readTail, type SessionFile } from '#/src/tapedeck-session-files'
 import { shelfName, shelfRoot } from '#/src/tapedeck-shelves'
 import {
@@ -26,6 +28,8 @@ export interface TapeInfo {
 	readonly kind: TapeKind
 	readonly cwd: string | undefined
 	readonly sessionId: string | undefined
+	/** Main repo and worktree for the cwd, from the file system. */
+	readonly place: ProjectPlace | undefined
 }
 
 /**
@@ -44,6 +48,7 @@ const unreadable: TapeInfo = {
 	kind: 'unreadable',
 	cwd: undefined,
 	sessionId: undefined,
+	place: undefined,
 }
 
 const kindOf = (transcript: Transcript, wholeFile: boolean): TapeKind => {
@@ -73,6 +78,7 @@ const infoFromChunk = (
 		kind: kindOf(transcript, wholeFile),
 		cwd: transcript.cwd,
 		sessionId: transcript.sessionId,
+		place: undefined,
 	}
 }
 
@@ -90,7 +96,7 @@ const readHeadInfo = async (file: SessionFile, attempt: number): Promise<TapeInf
 }
 
 /** Head info, renamed by a session name found in the last 64 KB (names are appended). */
-const readInfo = async (file: SessionFile): Promise<TapeInfo> => {
+const readInfo = async (file: SessionFile, places: ProjectPlaces): Promise<TapeInfo> => {
 	const head = await readHeadInfo(file, 0)
 
 	if (head.kind === 'unreadable') {
@@ -100,7 +106,12 @@ const readInfo = async (file: SessionFile): Promise<TapeInfo> => {
 	const tail = await readTail(file.path, file.size, tailBytes).catch(() => '')
 	const name = harnessName(file.source.harness, jsonLines(tail))
 
-	return name === undefined ? head : { ...head, title: clampTitle(name), titleSource: 'name' }
+	const place =
+		head.cwd === undefined ? undefined : await places.forCwd(head.cwd).catch(() => undefined)
+
+	const placed = { ...head, place }
+
+	return name === undefined ? placed : { ...placed, title: clampTitle(name), titleSource: 'name' }
 }
 
 /**
@@ -111,19 +122,42 @@ const readInfo = async (file: SessionFile): Promise<TapeInfo> => {
 export class TapeInfoCache {
 	private readonly entries = new Map<string, TapeInfo>()
 	private readonly names: CodexThreadNames
+	private readonly places: ProjectPlaces
 
-	constructor(names: CodexThreadNames = new CodexThreadNames()) {
+	constructor(
+		names: CodexThreadNames = new CodexThreadNames(),
+		places: ProjectPlaces = new ProjectPlaces(),
+	) {
 		this.names = names
+		this.places = places
 	}
 
 	private static key(file: SessionFile): string {
 		return `${file.path}\u0000${file.size}\u0000${file.modifiedAt.getTime()}`
 	}
 
-	/** Refreshes Codex thread names for these tapes; call after listing the shelves. */
-	async prepare(files: ReadonlyArray<SessionFile>): Promise<void> {
+	/**
+	 * Refreshes Codex thread names and resolves Claude Code and Pi project folders for these tapes;
+	 * call after listing the shelves.
+	 */
+	async prepare(files: ReadonlyArray<SessionFile>, home: string = homedir()): Promise<void> {
 		const codex = files.filter((file) => file.source.harness === 'codex')
+		const folders = files.flatMap((file) => layoutFolder(file, home) ?? [])
 		await this.names.loadAll(codex.map((file) => file.path))
+		await this.places.prepareFolders(folders)
+	}
+
+	/** Row for a tape from what is known about it so far. */
+	row(
+		file: SessionFile,
+		info: TapeInfo | undefined,
+		notes: NoteLookup,
+		home: string = homedir(),
+	): TapeRow {
+		const folder = layoutFolder(file, home)
+		const guess = folder === undefined ? undefined : this.places.folder(folder)
+
+		return tapeRow(file, info, notes, { home, resolved: guess })
 	}
 
 	/** Cached info, if this exact version of the file was read before. */
@@ -141,7 +175,7 @@ export class TapeInfoCache {
 			return cached
 		}
 
-		const info = await readInfo(file)
+		const info = await readInfo(file, this.places)
 		this.entries.set(TapeInfoCache.key(file), info)
 
 		return this.named(file, info)
@@ -158,17 +192,53 @@ export class TapeInfoCache {
 }
 
 /**
- * Project guess from where the file sits, before its first lines are read: the encoded project
- * folder for Claude Code and Pi. Codex files sit in date folders, so they wait for the cwd.
+ * The encoded project folder a Claude Code or Pi tape sits in. Codex files sit in date folders, so
+ * they have none.
  */
-const projectFromLayout = (file: SessionFile, home: string): string | undefined => {
+const layoutFolder = (file: SessionFile, home: string): string | undefined => {
 	if (file.source.harness === 'codex') {
 		return undefined
 	}
 
 	const folder = relative(shelfRoot(file.shelf, home), dirname(file.path)).split(sep)[0] ?? ''
 
-	return folder === '' || folder === '..' ? undefined : projectFromFolder(basename(folder), home)
+	return folder === '' || folder === '..' ? undefined : basename(folder)
+}
+
+/**
+ * Project guess before a tape is read: the resolved project folder when there is one, else a guess
+ * from its encoded name (with `-worktrees-` read as repo and worktree).
+ */
+const placeFromLayout = (
+	file: SessionFile,
+	home: string,
+	resolved: ProjectPlace | undefined,
+): ProjectPlace | undefined => {
+	const folder = layoutFolder(file, home)
+
+	if (resolved !== undefined || folder === undefined) {
+		return resolved
+	}
+
+	return placeFromEncodedName(projectFromFolder(folder, home) ?? '')
+}
+
+/** Project for a row: from the cwd's repo, else the cwd's folder, else the layout guess. */
+const rowPlace = (
+	file: SessionFile,
+	info: TapeInfo | undefined,
+	home: string,
+	resolved: ProjectPlace | undefined,
+): ProjectPlace | undefined => {
+	if (info?.place !== undefined) {
+		return info.place
+	}
+
+	const fromCwd = projectFromCwd(info?.cwd)
+
+	return fromCwd === undefined
+		? placeFromLayout(file, home, resolved)
+		: { project: fromCwd, worktree: undefined }
 }
 
 const noteFor = (
@@ -183,15 +253,24 @@ const readFields = (info: TapeInfo | undefined): Pick<TapeRow, 'title' | 'kind'>
 	kind: info?.kind,
 })
 
+/** Home folder (for tests) and a resolved project folder for a row. */
+export interface RowWhere {
+	readonly home?: string
+	readonly resolved?: ProjectPlace | undefined
+}
+
 /** Picker row for a tape, filled from cached info when there is some. */
 export const tapeRow = (
 	file: SessionFile,
 	info: TapeInfo | undefined,
 	notes: NoteLookup,
-	home: string = homedir(),
+	where: RowWhere = {},
 ): TapeRow => {
+	const home = where.home ?? homedir()
+	const { resolved } = where
 	const sessionId = info?.sessionId ?? sessionIdFromPath(file.path)
 	const note = noteFor(file, sessionId, notes)
+	const place = rowPlace(file, info, home, resolved)
 
 	return {
 		path: file.path,
@@ -200,7 +279,8 @@ export const tapeRow = (
 		agent: file.source.label,
 		shelf: shelfName(file.shelf),
 		modifiedAt: file.modifiedAt,
-		project: projectFromCwd(info?.cwd) ?? projectFromLayout(file, home),
+		project: place?.project,
+		worktree: place?.worktree,
 		...readFields(info),
 		sessionId,
 		state: tapeState(sessionId, file.modifiedAt, note),

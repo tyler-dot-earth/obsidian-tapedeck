@@ -14,7 +14,10 @@ export interface TapeRow {
 	readonly agent: string
 	readonly shelf: string
 	readonly modifiedAt: Date
+	/** Main repo (or folder) the session ran in. */
 	readonly project: string | undefined
+	/** Worktree folder, when the session ran in a git worktree of `project`. */
+	readonly worktree: string | undefined
 	readonly title: string | undefined
 	/** What the tape is, once read; subagent threads and empty files are left out of lists. */
 	readonly kind: TapeKind | undefined
@@ -124,13 +127,24 @@ export const projectFromFolder = (folder: string, home: string): string | undefi
 	return rest === '' ? undefined : rest
 }
 
+/** `monorepo · motion-design` for a worktree session, the project alone otherwise. */
+export const projectText = (row: TapeRow): string | undefined => {
+	if (row.project === undefined) {
+		return undefined
+	}
+
+	return row.worktree === undefined ? row.project : `${row.project} · ${row.worktree}`
+}
+
 /** `2026-01-15 09:00`, local time. */
 export const tapeWhen = (row: TapeRow): string =>
 	`${localDate(row.modifiedAt)} ${localTime(row.modifiedAt)}`
 
 /** Text a search query is matched against: agent, shelf, project, first prompt, and date. */
 export const tapeSearchText = (row: TapeRow): string =>
-	[row.agent, row.shelf, row.project ?? '', row.title ?? '', tapeWhen(row)].join(' ').toLowerCase()
+	[row.agent, row.shelf, row.project ?? '', row.worktree ?? '', row.title ?? '', tapeWhen(row)]
+		.join(' ')
+		.toLowerCase()
 
 /**
  * Listed rows matching every word of the query, in their original (newest first) order. Words match
@@ -157,7 +171,7 @@ export const filterTapes = (rows: ReadonlyArray<TapeRow>, query: string): Array<
 
 /** One-line label for a row: emoji, date, project, first prompt, and a mark if in the vault. */
 export const tapeLabel = (row: TapeRow): string => {
-	const parts = [`${row.emoji} ${tapeWhen(row)}`, row.project ?? '—', row.title ?? 'reading…']
+	const parts = [`${row.emoji} ${tapeWhen(row)}`, projectText(row) ?? '—', row.title ?? 'reading…']
 
 	return `${parts.join(' · ')}${stateMarks[row.state]}`
 }

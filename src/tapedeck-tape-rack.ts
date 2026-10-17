@@ -29,11 +29,12 @@ import {
 	toggleAllFolds,
 } from '#/src/tapedeck-rack-list'
 import type { SessionFile } from '#/src/tapedeck-session-files'
-import { type TapeInfoCache, tapeRow } from '#/src/tapedeck-tape-info'
+import type { TapeInfoCache } from '#/src/tapedeck-tape-info'
 import {
 	importButtonText,
 	isInVault,
 	isListed,
+	projectText,
 	type NoteLookup,
 	type TapeRow,
 	type TapeSelection,
@@ -295,7 +296,7 @@ export class TapeRackView extends ItemView {
 			this.loaded += 1
 		}
 
-		return tapeRow(file, info, this.notes)
+		return this.host.cache.row(file, info, this.notes)
 	}
 
 	private updateStates(): void {
@@ -319,7 +320,7 @@ export class TapeRackView extends ItemView {
 			const info = await this.host.cache.read(file)
 
 			if (generation === this.generation) {
-				this.rows[index] = tapeRow(file, info, this.notes)
+				this.rows[index] = this.host.cache.row(file, info, this.notes)
 				this.loaded += 1
 				this.scheduleRender()
 			}
@@ -420,8 +421,10 @@ export class TapeRackView extends ItemView {
 		meta.createSpan({ text: row.emoji, attr: { 'aria-label': row.agent } })
 		meta.createSpan({ cls: 'tapedeck-rack-when', text: tapeWhen(row) })
 
-		if (row.project !== undefined && this.groupBy !== 'project') {
-			meta.createSpan({ cls: 'tapedeck-rack-project', text: row.project })
+		const project = this.groupBy === 'project' ? row.worktree : projectText(row)
+
+		if (project !== undefined) {
+			meta.createSpan({ cls: 'tapedeck-rack-project', text: project })
 		}
 
 		const badge = stateBadges[row.state]

@@ -20,6 +20,7 @@ const row = (path: string, overrides: Partial<TapeRow>): TapeRow => ({
 	shelf: 'Claude Code',
 	modifiedAt: new Date('2026-01-15T09:00:00.000Z'),
 	project: 'demo',
+	worktree: undefined,
 	title: 'Make the greeting say hello world',
 	kind: 'session',
 	sessionId: undefined,
