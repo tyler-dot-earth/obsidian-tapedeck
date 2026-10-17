@@ -1,11 +1,11 @@
-import { localDateTime, localTime, parseTimestamp } from '#/src/dailies-filename'
-import { redactHomePaths, redactSecrets } from '#/src/dailies-redact'
+import { localDateTime, localTime, parseTimestamp } from '#/src/tapedeck-filename'
+import { redactHomePaths, redactSecrets } from '#/src/tapedeck-redact'
 import type {
 	ToolBlock,
 	Transcript,
 	TranscriptBlock,
 	TranscriptTurn,
-} from '#/src/dailies-transcript'
+} from '#/src/tapedeck-transcript'
 
 export type ToolOutputMode = 'full' | 'truncated' | 'none'
 
@@ -130,7 +130,7 @@ const toolSummary = (blocks: ReadonlyArray<TranscriptBlock>): string | undefined
 
 	const list = [...counts].map(([name, count]) => (count > 1 ? `${name} ×${count}` : name))
 
-	return `*🎞️ ${names.length} tool call${names.length > 1 ? 's' : ''}: ${list.join(', ')}*`
+	return `*📼 ${names.length} tool call${names.length > 1 ? 's' : ''}: ${list.join(', ')}*`
 }
 
 const turnHeading = (turn: TranscriptTurn): string => {
@@ -183,7 +183,7 @@ export const renderTranscriptNote = (transcript: Transcript, options: RenderOpti
 	const note = [
 		frontmatter(transcript, options),
 		'',
-		`# 🎞️ ${transcript.title}`,
+		`# 📼 ${transcript.title}`,
 		'',
 		...turns.flatMap((turn) => [turn, '']),
 	].join('\n')

@@ -85,7 +85,7 @@ export default defineConfig({
 			},
 		},
 		{
-			files: ['src/dailies-setting-tab.ts'],
+			files: ['src/tapedeck-setting-tab.ts'],
 			rules: {
 				'anti-slop/no-unknown-parameters': 'off',
 				'anti-slop/no-unknown-returns': 'off',

@@ -1,5 +1,5 @@
-/* Dailies writes plain markdown, so notes look right without this file.
+/* Tapedeck writes plain markdown, so notes look right without this file.
    These rules only tidy the import modal. */
-.modal .dailies-import-path input {
+.modal .tapedeck-import-path input {
 	width: 100%;
 }

@@ -4,9 +4,9 @@ import { join, relative, sep } from 'node:path'
 
 import { Effect } from 'effect'
 
-import { DailiesReadError, dailiesErrorMessage } from '#/src/dailies-errors'
-import type { ResolvedDailiesSettings } from '#/src/dailies-plugin-settings'
-import type { Harness, TranscriptSource } from '#/src/dailies-transcript'
+import { TapedeckReadError, tapedeckErrorMessage } from '#/src/tapedeck-errors'
+import type { ResolvedTapedeckSettings } from '#/src/tapedeck-plugin-settings'
+import type { Harness, TranscriptSource } from '#/src/tapedeck-transcript'
 
 /** One session file on disk. */
 export interface SessionFile {
@@ -28,7 +28,7 @@ export const defaultSourceDirectory = (source: TranscriptSource, home: string): 
 /** Configured directory, with a leading `~` expanded, or the per-OS default. */
 export const sourceDirectory = (
 	source: TranscriptSource,
-	settings: ResolvedDailiesSettings,
+	settings: ResolvedTapedeckSettings,
 ): string => {
 	const configured = settings[directoryKeys[source.harness]].trim()
 
@@ -68,14 +68,14 @@ const listFor = async (source: TranscriptSource, root: string): Promise<Array<Se
 }
 
 /** Session files for the given sources, newest first. Missing directories list nothing. */
-export const listSessionFiles = Effect.fn('Dailies.listSessionFiles')(function* (
+export const listSessionFiles = Effect.fn('Tapedeck.listSessionFiles')(function* (
 	sources: ReadonlyArray<TranscriptSource>,
-	settings: ResolvedDailiesSettings,
+	settings: ResolvedTapedeckSettings,
 ) {
 	const lists = yield* Effect.tryPromise({
 		try: () =>
 			Promise.all(sources.map((source) => listFor(source, sourceDirectory(source, settings)))),
-		catch: (cause) => new DailiesReadError({ message: dailiesErrorMessage(cause) }),
+		catch: (cause) => new TapedeckReadError({ message: tapedeckErrorMessage(cause) }),
 	})
 
 	return lists
@@ -84,10 +84,10 @@ export const listSessionFiles = Effect.fn('Dailies.listSessionFiles')(function* 
 })
 
 /** Reads a session file as UTF-8. */
-export const readSessionFile = Effect.fn('Dailies.readSessionFile')(function* (path: string) {
+export const readSessionFile = Effect.fn('Tapedeck.readSessionFile')(function* (path: string) {
 	return yield* Effect.tryPromise({
 		try: () => readFile(path, 'utf8'),
-		catch: (cause) => new DailiesReadError({ message: dailiesErrorMessage(cause) }),
+		catch: (cause) => new TapedeckReadError({ message: tapedeckErrorMessage(cause) }),
 	})
 })
 

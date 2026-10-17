@@ -4,15 +4,15 @@ import { basename } from 'node:path'
 import { Effect, Option, Result, Schema } from 'effect'
 import { type App, normalizePath, TFile } from 'obsidian'
 
-import type { DailiesParseError } from '#/src/dailies-errors'
-import { transcriptFilename } from '#/src/dailies-filename'
-import type { ResolvedDailiesSettings } from '#/src/dailies-plugin-settings'
-import { type PreviousNote, renderTranscriptNote } from '#/src/dailies-render'
-import { listSessionFiles, readSessionFile } from '#/src/dailies-session-files'
-import { detectSource, sourceFor } from '#/src/dailies-sources'
-import type { Harness, Transcript, TranscriptSource } from '#/src/dailies-transcript'
+import type { TapedeckParseError } from '#/src/tapedeck-errors'
+import { transcriptFilename } from '#/src/tapedeck-filename'
+import type { ResolvedTapedeckSettings } from '#/src/tapedeck-plugin-settings'
+import { type PreviousNote, renderTranscriptNote } from '#/src/tapedeck-render'
+import { listSessionFiles, readSessionFile } from '#/src/tapedeck-session-files'
+import { detectSource, sourceFor } from '#/src/tapedeck-sources'
+import type { Harness, Transcript, TranscriptSource } from '#/src/tapedeck-transcript'
 
-/** Frontmatter Dailies reads back from notes it wrote. */
+/** Frontmatter Tapedeck reads back from notes it wrote. */
 const TranscriptFrontmatter = Schema.Struct({
 	type: Schema.Literal('transcript'),
 	harness: Schema.Literals(['claude-code', 'codex', 'pi']),
@@ -34,7 +34,7 @@ export interface ImportOutcome {
 	readonly updated: boolean
 }
 
-export type ParsedSession = Result.Result<Transcript, DailiesParseError | 'unknown-format'>
+export type ParsedSession = Result.Result<Transcript, TapedeckParseError | 'unknown-format'>
 
 /** Parses session text with the given source, or detects the source from the first lines. */
 export const parseSession = (text: string, source: TranscriptSource | undefined): ParsedSession => {
@@ -44,16 +44,16 @@ export const parseSession = (text: string, source: TranscriptSource | undefined)
 }
 
 /** Vault side of an import: find, create, or update transcript notes. */
-export class DailiesImporter {
+export class TapedeckImporter {
 	private readonly app: App
-	private readonly settings: () => ResolvedDailiesSettings
+	private readonly settings: () => ResolvedTapedeckSettings
 
-	constructor(app: App, settings: () => ResolvedDailiesSettings) {
+	constructor(app: App, settings: () => ResolvedTapedeckSettings) {
 		this.app = app
 		this.settings = settings
 	}
 
-	/** Frontmatter of a Dailies note, if the file is one. */
+	/** Frontmatter of a Tapedeck note, if the file is one. */
 	transcriptFrontmatter(file: TFile): TranscriptFrontmatter | undefined {
 		const frontmatter: unknown = this.app.metadataCache.getFileCache(file)?.frontmatter
 

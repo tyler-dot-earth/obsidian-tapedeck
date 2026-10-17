@@ -1,9 +1,9 @@
-import { claudeCodeSource } from '#/src/dailies-source-claude-code'
-import { codexSource } from '#/src/dailies-source-codex'
-import { piSource } from '#/src/dailies-source-pi'
-import { type Harness, jsonLines, type TranscriptSource } from '#/src/dailies-transcript'
+import { claudeCodeSource } from '#/src/tapedeck-source-claude-code'
+import { codexSource } from '#/src/tapedeck-source-codex'
+import { piSource } from '#/src/tapedeck-source-pi'
+import { type Harness, jsonLines, type TranscriptSource } from '#/src/tapedeck-transcript'
 
-/** Every harness Dailies can read. Add new sources here. */
+/** Every harness Tapedeck can read. Add new sources here. */
 export const transcriptSources: ReadonlyArray<TranscriptSource> = [
 	claudeCodeSource,
 	codexSource,

@@ -4,21 +4,21 @@ import { Option, Schema } from 'effect'
 import { type App, Plugin, PluginSettingTab, type SettingDefinitionItem } from 'obsidian'
 
 import {
-	type DailiesPluginSettingsHost,
-	isDailiesSettingKey,
-	resolveDailiesSettings,
-	withDailiesSetting,
-} from '#/src/dailies-plugin-settings'
-import { defaultSourceDirectory } from '#/src/dailies-session-files'
-import { claudeCodeSource } from '#/src/dailies-source-claude-code'
-import { codexSource } from '#/src/dailies-source-codex'
-import { piSource } from '#/src/dailies-source-pi'
+	type TapedeckPluginSettingsHost,
+	isTapedeckSettingKey,
+	resolveTapedeckSettings,
+	withTapedeckSetting,
+} from '#/src/tapedeck-plugin-settings'
+import { defaultSourceDirectory } from '#/src/tapedeck-session-files'
+import { claudeCodeSource } from '#/src/tapedeck-source-claude-code'
+import { codexSource } from '#/src/tapedeck-source-codex'
+import { piSource } from '#/src/tapedeck-source-pi'
 
-/** Plugin settings tab: where the reels live, how notes come out, what gets blurred. */
-export class DailiesSettingTab extends PluginSettingTab {
-	private readonly settingsHost: DailiesPluginSettingsHost
+/** Plugin settings tab: where the tapes live, how notes come out, what gets blurred. */
+export class TapedeckSettingTab extends PluginSettingTab {
+	private readonly settingsHost: TapedeckPluginSettingsHost
 
-	constructor(app: App, plugin: Plugin, settingsHost: DailiesPluginSettingsHost) {
+	constructor(app: App, plugin: Plugin, settingsHost: TapedeckPluginSettingsHost) {
 		super(app, plugin)
 		this.settingsHost = settingsHost
 	}
@@ -28,7 +28,7 @@ export class DailiesSettingTab extends PluginSettingTab {
 
 		return [
 			{
-				name: '📽️ Sources',
+				name: '📺 Sources',
 				desc: 'Where each agent keeps its session files. Empty means the default for this OS.',
 			},
 			{
@@ -60,10 +60,10 @@ export class DailiesSettingTab extends PluginSettingTab {
 			},
 			{
 				name: 'Recent sessions to list',
-				desc: 'How many takes Import recent sessions shows.',
+				desc: 'How many tapes Import recent sessions shows.',
 				control: { type: 'number', key: 'recentCount', placeholder: '10' },
 			},
-			{ name: '🎞️ Notes', desc: 'How a transcript lands in the vault.' },
+			{ name: '🏷️ Notes', desc: 'How a transcript lands in the vault.' },
 			{
 				name: 'Import folder',
 				desc: 'Created if missing.',
@@ -125,15 +125,15 @@ export class DailiesSettingTab extends PluginSettingTab {
 	}
 
 	override getControlValue(key: string): unknown {
-		if (!isDailiesSettingKey(key)) {
+		if (!isTapedeckSettingKey(key)) {
 			return undefined
 		}
 
-		return resolveDailiesSettings(this.settingsHost.settings)[key]
+		return resolveTapedeckSettings(this.settingsHost.settings)[key]
 	}
 
 	override setControlValue(key: string, value: unknown): void {
-		if (!isDailiesSettingKey(key)) {
+		if (!isTapedeckSettingKey(key)) {
 			return
 		}
 
@@ -145,7 +145,7 @@ export class DailiesSettingTab extends PluginSettingTab {
 			return
 		}
 
-		this.settingsHost.settings = withDailiesSetting(this.settingsHost.settings, key, json.value)
-		void this.settingsHost.saveDailiesPluginSettings()
+		this.settingsHost.settings = withTapedeckSetting(this.settingsHost.settings, key, json.value)
+		void this.settingsHost.saveTapedeckPluginSettings()
 	}
 }

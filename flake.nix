@@ -1,5 +1,5 @@
 {
-  description = "Obsidian Dailies development shell";
+  description = "Obsidian Tapedeck development shell";
 
   nixConfig = {
     bash-prompt = "";
@@ -43,7 +43,7 @@
         in
         {
           default = pkgs.mkShell {
-            name = "obsidian-dailies";
+            name = "obsidian-tapedeck";
             packages = [
               nodejs
               pnpm

@@ -1,6 +1,6 @@
 import { assert, describe, it } from '@effect/vitest'
 
-import { redactHomePaths, redactSecrets } from '#/src/dailies-redact'
+import { redactHomePaths, redactSecrets } from '#/src/tapedeck-redact'
 
 describe('redactSecrets', () => {
 	it('masks common token shapes', () => {

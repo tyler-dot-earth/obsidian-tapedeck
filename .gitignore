@@ -12,6 +12,6 @@ dist
 .vscode
 example/vault/.obsidian/workspace.json
 example/vault/.obsidian/workspace-mobile.json
-example/vault/.obsidian/plugins/dailies/main.js
-example/vault/.obsidian/plugins/dailies/manifest.json
-example/vault/.obsidian/plugins/dailies/styles.css
+example/vault/.obsidian/plugins/tapedeck/main.js
+example/vault/.obsidian/plugins/tapedeck/manifest.json
+example/vault/.obsidian/plugins/tapedeck/styles.css

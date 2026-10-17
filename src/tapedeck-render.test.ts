@@ -3,8 +3,8 @@ import { readFileSync } from 'node:fs'
 import { assert, describe, it } from '@effect/vitest'
 import { Result } from 'effect'
 
-import { type RenderOptions, renderTranscriptNote } from '#/src/dailies-render'
-import { claudeCodeSource } from '#/src/dailies-source-claude-code'
+import { type RenderOptions, renderTranscriptNote } from '#/src/tapedeck-render'
+import { claudeCodeSource } from '#/src/tapedeck-source-claude-code'
 
 const transcript = Result.getOrThrow(
 	claudeCodeSource.parse(
@@ -50,6 +50,10 @@ describe('renderTranscriptNote', () => {
 				'---',
 			].join('\n'),
 		)
+	})
+
+	it('labels the note as a tape', () => {
+		assert.include(note, '# 📼 Make the greeting say hello world')
 	})
 
 	it('folds tool calls into callouts with output and diff blocks', () => {

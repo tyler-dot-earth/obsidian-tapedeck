@@ -1,4 +1,4 @@
-import type { Transcript } from '#/src/dailies-transcript'
+import type { Transcript } from '#/src/tapedeck-transcript'
 
 /** Default note name: `2026-01-31 claude-code Fix the flaky test`. */
 export const defaultFilenamePattern = '{date} {harness} {title}'

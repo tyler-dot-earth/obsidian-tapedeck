@@ -2,7 +2,7 @@
 set -euo pipefail
 
 repo_root=$(cd "$(dirname "$0")/.." && pwd)
-plugin_dir="$repo_root/example/vault/.obsidian/plugins/dailies"
+plugin_dir="$repo_root/example/vault/.obsidian/plugins/tapedeck"
 
 mkdir -p "$plugin_dir"
 ln -sfn "$repo_root/main.js" "$plugin_dir/main.js"

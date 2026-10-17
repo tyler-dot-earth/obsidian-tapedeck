@@ -1,9 +1,9 @@
 import { Effect, Result } from 'effect'
 
-import { localDate, localTime } from '#/src/dailies-filename'
-import { parseSession } from '#/src/dailies-importer'
-import type { SessionChoice } from '#/src/dailies-modals'
-import { readSessionFile, type SessionFile } from '#/src/dailies-session-files'
+import { localDate, localTime } from '#/src/tapedeck-filename'
+import { parseSession } from '#/src/tapedeck-importer'
+import type { SessionChoice } from '#/src/tapedeck-modals'
+import { readSessionFile, type SessionFile } from '#/src/tapedeck-session-files'
 
 /** Picker row: source emoji, when the file last changed, and the first prompt. */
 export const sessionChoice = async (file: SessionFile): Promise<SessionChoice> => {

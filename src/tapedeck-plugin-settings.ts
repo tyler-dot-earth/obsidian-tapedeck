@@ -1,10 +1,10 @@
 import { loadPluginSettings, type PluginDataStore } from '@tyler.earth/effect-obsidian'
 import { Effect, Option, Schema } from 'effect'
 
-import { defaultFilenamePattern } from '#/src/dailies-filename'
+import { defaultFilenamePattern } from '#/src/tapedeck-filename'
 
-/** Global plugin settings. Missing keys fall back to `dailiesDefaults`. */
-export const DailiesPluginSettings = Schema.Struct({
+/** Global plugin settings. Missing keys fall back to `tapedeckDefaults`. */
+export const TapedeckPluginSettings = Schema.Struct({
 	schemaVersion: Schema.optionalKey(Schema.Literal(1)),
 	claudeCodeDirectory: Schema.optionalKey(Schema.String),
 	codexDirectory: Schema.optionalKey(Schema.String),
@@ -21,14 +21,14 @@ export const DailiesPluginSettings = Schema.Struct({
 	redactSecrets: Schema.optionalKey(Schema.Boolean),
 })
 
-export type DailiesPluginSettings = Schema.Schema.Type<typeof DailiesPluginSettings>
+export type TapedeckPluginSettings = Schema.Schema.Type<typeof TapedeckPluginSettings>
 
-export type DailiesSettingKey = Exclude<keyof DailiesPluginSettings, 'schemaVersion'>
+export type TapedeckSettingKey = Exclude<keyof TapedeckPluginSettings, 'schemaVersion'>
 
 /** Settings with every default filled in. Empty directories mean the per-OS default. */
-export type ResolvedDailiesSettings = Required<Omit<DailiesPluginSettings, 'schemaVersion'>>
+export type ResolvedTapedeckSettings = Required<Omit<TapedeckPluginSettings, 'schemaVersion'>>
 
-export const dailiesDefaults: ResolvedDailiesSettings = {
+export const tapedeckDefaults: ResolvedTapedeckSettings = {
 	claudeCodeDirectory: '',
 	codexDirectory: '',
 	piDirectory: '',
@@ -44,7 +44,7 @@ export const dailiesDefaults: ResolvedDailiesSettings = {
 	redactSecrets: true,
 }
 
-export const dailiesSettingKeys: ReadonlyArray<DailiesSettingKey> = [
+export const tapedeckSettingKeys: ReadonlyArray<TapedeckSettingKey> = [
 	'claudeCodeDirectory',
 	'codexDirectory',
 	'piDirectory',
@@ -61,53 +61,53 @@ export const dailiesSettingKeys: ReadonlyArray<DailiesSettingKey> = [
 ]
 
 /** Narrows a settings-tab control key. */
-export const isDailiesSettingKey = (key: string): key is DailiesSettingKey =>
-	dailiesSettingKeys.some((settingKey) => settingKey === key)
+export const isTapedeckSettingKey = (key: string): key is TapedeckSettingKey =>
+	tapedeckSettingKeys.some((settingKey) => settingKey === key)
 
-export const defaultDailiesPluginSettings: DailiesPluginSettings = DailiesPluginSettings.make({})
+export const defaultTapedeckPluginSettings: TapedeckPluginSettings = TapedeckPluginSettings.make({})
 
 /** Fills defaults for every missing key. */
-export const resolveDailiesSettings = (
-	settings: DailiesPluginSettings,
-): ResolvedDailiesSettings => ({ ...dailiesDefaults, ...settings })
+export const resolveTapedeckSettings = (
+	settings: TapedeckPluginSettings,
+): ResolvedTapedeckSettings => ({ ...tapedeckDefaults, ...settings })
 
 /** Plugin surface the settings tab uses to persist settings. */
-export interface DailiesPluginSettingsHost {
-	settings: DailiesPluginSettings
-	saveDailiesPluginSettings: () => Promise<void>
+export interface TapedeckPluginSettingsHost {
+	settings: TapedeckPluginSettings
+	saveTapedeckPluginSettings: () => Promise<void>
 }
 
 /**
  * Sets one key and re-decodes. Values that do not fit the schema leave settings unchanged. A value
  * equal to the default drops the key so data.json stays small.
  */
-export const withDailiesSetting = (
-	current: DailiesPluginSettings,
-	key: DailiesSettingKey,
+export const withTapedeckSetting = (
+	current: TapedeckPluginSettings,
+	key: TapedeckSettingKey,
 	value: Schema.Json,
-): DailiesPluginSettings => {
+): TapedeckPluginSettings => {
 	const next = Object.fromEntries(
 		Object.entries({ ...current, [key]: value }).filter(
 			([entryKey, entryValue]) =>
-				!isDailiesSettingKey(entryKey) || entryValue !== dailiesDefaults[entryKey],
+				!isTapedeckSettingKey(entryKey) || entryValue !== tapedeckDefaults[entryKey],
 		),
 	)
 
-	return Option.getOrElse(Schema.decodeUnknownOption(DailiesPluginSettings)(next), () => current)
+	return Option.getOrElse(Schema.decodeUnknownOption(TapedeckPluginSettings)(next), () => current)
 }
 
-/** Loads Dailies settings, falling back to defaults when data.json is missing or invalid. */
-export const loadDailiesPluginSettings: Effect.Effect<
-	DailiesPluginSettings,
+/** Loads Tapedeck settings, falling back to defaults when data.json is missing or invalid. */
+export const loadTapedeckPluginSettings: Effect.Effect<
+	TapedeckPluginSettings,
 	never,
 	PluginDataStore
 > = loadPluginSettings({
-	schema: DailiesPluginSettings,
-	fallback: defaultDailiesPluginSettings,
+	schema: TapedeckPluginSettings,
+	fallback: defaultTapedeckPluginSettings,
 }).pipe(
-	Effect.tapError((error) => Effect.logWarning(`Dailies: using default settings (${error._tag})`)),
+	Effect.tapError((error) => Effect.logWarning(`Tapedeck: using default settings (${error._tag})`)),
 	Effect.catchTags({
-		PluginDataLoadError: () => Effect.succeed(defaultDailiesPluginSettings),
-		PluginSettingsDecodeError: () => Effect.succeed(defaultDailiesPluginSettings),
+		PluginDataLoadError: () => Effect.succeed(defaultTapedeckPluginSettings),
+		PluginSettingsDecodeError: () => Effect.succeed(defaultTapedeckPluginSettings),
 	}),
 )

@@ -7,32 +7,32 @@ import {
 import { Effect, Layer, Logger, type ManagedRuntime } from 'effect'
 import { Notice, Plugin } from 'obsidian'
 
-import { dailiesErrorMessage } from '#/src/dailies-errors'
-import { DailiesImporter, type ImportOutcome } from '#/src/dailies-importer'
+import { tapedeckErrorMessage } from '#/src/tapedeck-errors'
+import { TapedeckImporter, type ImportOutcome } from '#/src/tapedeck-importer'
 import {
 	type FileChoice,
 	ImportFileModal,
 	type SessionChoice,
 	SessionSuggestModal,
 	SourceSuggestModal,
-} from '#/src/dailies-modals'
+} from '#/src/tapedeck-modals'
 import {
-	type DailiesPluginSettings,
-	defaultDailiesPluginSettings,
-	loadDailiesPluginSettings,
-	resolveDailiesSettings,
-} from '#/src/dailies-plugin-settings'
-import { sessionChoice } from '#/src/dailies-session-choice'
-import { expandHome, listSessionFiles, type SessionFile } from '#/src/dailies-session-files'
-import { DailiesSettingTab } from '#/src/dailies-setting-tab'
-import { transcriptSources } from '#/src/dailies-sources'
-import type { TranscriptSource } from '#/src/dailies-transcript'
+	type TapedeckPluginSettings,
+	defaultTapedeckPluginSettings,
+	loadTapedeckPluginSettings,
+	resolveTapedeckSettings,
+} from '#/src/tapedeck-plugin-settings'
+import { sessionChoice } from '#/src/tapedeck-session-choice'
+import { expandHome, listSessionFiles, type SessionFile } from '#/src/tapedeck-session-files'
+import { TapedeckSettingTab } from '#/src/tapedeck-setting-tab'
+import { transcriptSources } from '#/src/tapedeck-sources'
+import type { TranscriptSource } from '#/src/tapedeck-transcript'
 
-export default class DailiesPlugin extends Plugin {
-	override settings: DailiesPluginSettings = defaultDailiesPluginSettings
+export default class TapedeckPlugin extends Plugin {
+	override settings: TapedeckPluginSettings = defaultTapedeckPluginSettings
 	private runtime: ManagedRuntime.ManagedRuntime<PluginDataStore, never> | undefined
-	private readonly importer = new DailiesImporter(this.app, () =>
-		resolveDailiesSettings(this.settings),
+	private readonly importer = new TapedeckImporter(this.app, () =>
+		resolveTapedeckSettings(this.settings),
 	)
 
 	override async onload(): Promise<void> {
@@ -47,15 +47,15 @@ export default class DailiesPlugin extends Plugin {
 		)
 
 		this.runtime = runtime
-		this.settings = await runtime.runPromise(loadDailiesPluginSettings)
-		this.addSettingTab(new DailiesSettingTab(this.app, this, this))
+		this.settings = await runtime.runPromise(loadTapedeckPluginSettings)
+		this.addSettingTab(new TapedeckSettingTab(this.app, this, this))
 		this.registerCommands()
 	}
 
 	private registerCommands(): void {
 		this.addCommand({
 			id: 'import-session-file',
-			name: '🎬 Import session file',
+			name: '⏏️ Import session file',
 			callback: () => {
 				new ImportFileModal(this.app, (choice) => {
 					void this.importChoice(choice)
@@ -65,7 +65,7 @@ export default class DailiesPlugin extends Plugin {
 
 		this.addCommand({
 			id: 'import-recent-sessions',
-			name: '🎞️ Import recent sessions',
+			name: '📼 Import recent sessions',
 			callback: () => {
 				new SourceSuggestModal(this.app, (source) => {
 					void this.pickRecent(source === 'all' ? transcriptSources : [source])
@@ -75,7 +75,7 @@ export default class DailiesPlugin extends Plugin {
 
 		this.addCommand({
 			id: 'reimport-current-transcript',
-			name: '🔁 Re-import current transcript',
+			name: '⏪ Re-import current transcript',
 			checkCallback: (checking) => {
 				const file = this.app.workspace.getActiveFile()
 
@@ -100,18 +100,18 @@ export default class DailiesPlugin extends Plugin {
 	}
 
 	private async pickRecent(sources: ReadonlyArray<TranscriptSource>): Promise<void> {
-		const settings = resolveDailiesSettings(this.settings)
+		const settings = resolveTapedeckSettings(this.settings)
 		const files = await Effect.runPromise(listSessionFiles(sources, settings)).catch(() => [])
 		const recent = files.slice(0, Math.max(1, settings.recentCount))
 
 		if (recent.length === 0) {
-			new Notice('📽️ Dailies: no session files found. Check the source folders in settings.')
+			new Notice('📺 Tapedeck: no tapes found. Check the source folders in settings.')
 
 			return
 		}
 
 		const choices: Array<SessionChoice> = [
-			{ label: `🎞️ Import all ${recent.length} listed sessions`, file: undefined },
+			{ label: `⏯️ Import all ${recent.length} listed tapes`, file: undefined },
 			...(await Promise.all(recent.map(sessionChoice))),
 		]
 
@@ -132,21 +132,21 @@ export default class DailiesPlugin extends Plugin {
 		const imported = outcomes.length - updated - failed
 		const skipped = failed > 0 ? `, ${failed} skipped` : ''
 
-		new Notice(`🎞️ Dailies: ${imported} new, ${updated} updated${skipped}.`)
+		new Notice(`📼 Tapedeck: ${imported} new, ${updated} updated${skipped}.`)
 	}
 
 	private async run(task: Promise<ImportOutcome>): Promise<void> {
 		try {
 			const outcome = await task
-			const verb = outcome.updated ? '🔁 Updated' : '🎬 Imported'
+			const verb = outcome.updated ? '⏪ Updated' : '⏏️ Imported'
 			new Notice(`${verb} ${outcome.file.basename}`)
 			await this.app.workspace.getLeaf(false).openFile(outcome.file)
 		} catch (error) {
-			new Notice(`✂️ Dailies: ${dailiesErrorMessage(error)}`)
+			new Notice(`⏹️ Tapedeck: ${tapedeckErrorMessage(error)}`)
 		}
 	}
 
-	async saveDailiesPluginSettings(): Promise<void> {
+	async saveTapedeckPluginSettings(): Promise<void> {
 		await this.saveData(this.settings)
 	}
 

@@ -1,8 +1,8 @@
 import { Option, Result, Schema } from 'effect'
 
-import { newFileDiff } from '#/src/dailies-diff'
-import { DailiesParseError } from '#/src/dailies-errors'
-import { decodeJsonLines, prettyJson, someLineMatches, TextPart, textOf } from '#/src/dailies-json'
+import { newFileDiff } from '#/src/tapedeck-diff'
+import { TapedeckParseError } from '#/src/tapedeck-errors'
+import { decodeJsonLines, prettyJson, someLineMatches, TextPart, textOf } from '#/src/tapedeck-json'
 import {
 	appendTurn,
 	jsonLines,
@@ -12,7 +12,7 @@ import {
 	type TranscriptBlock,
 	type TranscriptSource,
 	type TranscriptTurn,
-} from '#/src/dailies-transcript'
+} from '#/src/tapedeck-transcript'
 
 /**
  * Pi (pi-mono coding agent) writes `~/.pi/agent/sessions/--<cwd>--/<time>_<id>.jsonl`. Line one is
@@ -222,12 +222,12 @@ const entryTurn = (entry: PiEntry, results: Map<string, ToolResult>): Transcript
 		? messageTurn(entry, entry.message, results)
 		: summaryTurn(entry)
 
-const parse = (text: string): Result.Result<Transcript, DailiesParseError> => {
+const parse = (text: string): Result.Result<Transcript, TapedeckParseError> => {
 	const entries = decodeJsonLines(PiEntry, jsonLines(text))
 	const header = entries.find((entry) => entry.type === 'session')
 
 	if (header?.id === undefined) {
-		return Result.fail(new DailiesParseError({ message: 'No Pi session header found' }))
+		return Result.fail(new TapedeckParseError({ message: 'No Pi session header found' }))
 	}
 
 	const branch = activeBranch(entries.filter((entry) => entry.type !== 'session'))

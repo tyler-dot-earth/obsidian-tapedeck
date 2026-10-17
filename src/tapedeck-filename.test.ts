@@ -1,7 +1,7 @@
 import { assert, describe, it } from '@effect/vitest'
 
-import { sanitizeFilename, transcriptFilename } from '#/src/dailies-filename'
-import type { Transcript } from '#/src/dailies-transcript'
+import { sanitizeFilename, transcriptFilename } from '#/src/tapedeck-filename'
+import type { Transcript } from '#/src/tapedeck-transcript'
 
 const transcript: Transcript = {
 	harness: 'codex',

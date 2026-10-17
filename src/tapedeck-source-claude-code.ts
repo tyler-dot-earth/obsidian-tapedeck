@@ -1,14 +1,14 @@
 import { Option, Result, Schema } from 'effect'
 
-import { newFileDiff, replacementDiff } from '#/src/dailies-diff'
-import { DailiesParseError } from '#/src/dailies-errors'
+import { newFileDiff, replacementDiff } from '#/src/tapedeck-diff'
+import { TapedeckParseError } from '#/src/tapedeck-errors'
 import {
 	decodeJsonLines,
 	someLineMatches,
 	prettyJson,
 	TextContent,
 	textOf,
-} from '#/src/dailies-json'
+} from '#/src/tapedeck-json'
 import {
 	appendTurn,
 	jsonLines,
@@ -18,7 +18,7 @@ import {
 	type TranscriptBlock,
 	type TranscriptSource,
 	type TranscriptTurn,
-} from '#/src/dailies-transcript'
+} from '#/src/tapedeck-transcript'
 
 /**
  * Claude Code writes one JSON object per line to `~/.claude/projects/<encoded cwd>/<session
@@ -170,12 +170,12 @@ const isConversationLine = (line: ClaudeLine): boolean =>
 const firstDefined = (values: ReadonlyArray<string | undefined>): string | undefined =>
 	values.find((value) => value !== undefined && value !== '' && value !== '<synthetic>')
 
-const parse = (text: string): Result.Result<Transcript, DailiesParseError> => {
+const parse = (text: string): Result.Result<Transcript, TapedeckParseError> => {
 	const lines = decodeJsonLines(ClaudeLine, jsonLines(text)).filter(isConversationLine)
 	const sessionId = firstDefined(lines.map((line) => line.sessionId))
 
 	if (sessionId === undefined) {
-		return Result.fail(new DailiesParseError({ message: 'No Claude Code messages found' }))
+		return Result.fail(new TapedeckParseError({ message: 'No Claude Code messages found' }))
 	}
 
 	const results = collectResults(lines)

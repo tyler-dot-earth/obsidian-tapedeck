@@ -1,13 +1,13 @@
 import { Option, Result, Schema } from 'effect'
 
-import { DailiesParseError } from '#/src/dailies-errors'
+import { TapedeckParseError } from '#/src/tapedeck-errors'
 import {
 	decodeJsonLines,
 	someLineMatches,
 	prettyJsonString,
 	TextContent,
 	textOf,
-} from '#/src/dailies-json'
+} from '#/src/tapedeck-json'
 import {
 	appendTurn,
 	jsonLines,
@@ -17,7 +17,7 @@ import {
 	type TranscriptBlock,
 	type TranscriptSource,
 	type TranscriptTurn,
-} from '#/src/dailies-transcript'
+} from '#/src/tapedeck-transcript'
 
 /**
  * Codex CLI writes `~/.codex/sessions/YYYY/MM/DD/rollout-<time>-<id>.jsonl`. Each line is `{
@@ -198,12 +198,12 @@ const itemTurns = (items: ReadonlyArray<CodexLine>): Array<TranscriptTurn> => {
 const lastDefined = (values: ReadonlyArray<string | undefined>): string | undefined =>
 	values.findLast((value) => value !== undefined && value !== '')
 
-const parse = (text: string): Result.Result<Transcript, DailiesParseError> => {
+const parse = (text: string): Result.Result<Transcript, TapedeckParseError> => {
 	const lines = decodeJsonLines(CodexLine, jsonLines(text))
 	const meta = lines.find((line) => line.type === 'session_meta')?.payload
 
 	if (meta?.id === undefined) {
-		return Result.fail(new DailiesParseError({ message: 'No Codex session_meta line found' }))
+		return Result.fail(new TapedeckParseError({ message: 'No Codex session_meta line found' }))
 	}
 
 	const turns = itemTurns(lines.filter((line) => line.type === 'response_item'))

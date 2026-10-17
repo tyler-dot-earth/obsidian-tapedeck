@@ -1,8 +1,8 @@
 import { type App, FuzzySuggestModal, Modal, Setting } from 'obsidian'
 
-import type { SessionFile } from '#/src/dailies-session-files'
-import { transcriptSources } from '#/src/dailies-sources'
-import type { TranscriptSource } from '#/src/dailies-transcript'
+import type { SessionFile } from '#/src/tapedeck-session-files'
+import { transcriptSources } from '#/src/tapedeck-sources'
+import type { TranscriptSource } from '#/src/tapedeck-transcript'
 
 /** One row in the recent-sessions picker. `undefined` file means "import every listed session". */
 export interface SessionChoice {
@@ -23,7 +23,7 @@ export class SessionSuggestModal extends FuzzySuggestModal<SessionChoice> {
 		super(app)
 		this.choices = choices
 		this.onChoose = onChoose
-		this.setPlaceholder('🎞️ Pick a take to import')
+		this.setPlaceholder('📼 Pick a tape to import')
 	}
 
 	override getItems(): Array<SessionChoice> {
@@ -46,7 +46,7 @@ export class SourceSuggestModal extends FuzzySuggestModal<TranscriptSource | 'al
 	constructor(app: App, onChoose: (source: TranscriptSource | 'all') => void) {
 		super(app)
 		this.onChoose = onChoose
-		this.setPlaceholder('📽️ Which reel?')
+		this.setPlaceholder('📺 Which deck?')
 	}
 
 	override getItems(): Array<TranscriptSource | 'all'> {
@@ -54,7 +54,7 @@ export class SourceSuggestModal extends FuzzySuggestModal<TranscriptSource | 'al
 	}
 
 	override getItemText(item: TranscriptSource | 'all'): string {
-		return item === 'all' ? '🎞️ All sources' : `${item.emoji} ${item.label}`
+		return item === 'all' ? '📼 All decks' : `${item.emoji} ${item.label}`
 	}
 
 	override onChooseItem(item: TranscriptSource | 'all'): void {
@@ -78,10 +78,10 @@ export class ImportFileModal extends Modal {
 	}
 
 	override onOpen(): void {
-		this.setTitle('🎬 Import a session file')
+		this.setTitle('⏏️ Load a session tape')
 
 		new Setting(this.contentEl)
-			.setClass('dailies-import-path')
+			.setClass('tapedeck-import-path')
 			.setName('Path')
 			.setDesc('Full path to a .jsonl session file. ~ works.')
 			.addText((text) =>

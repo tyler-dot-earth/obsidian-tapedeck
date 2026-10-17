@@ -1,6 +1,6 @@
 import type { Result } from 'effect'
 
-import type { DailiesParseError } from '#/src/dailies-errors'
+import type { TapedeckParseError } from '#/src/tapedeck-errors'
 
 /** Coding agent that wrote the session file. */
 export type Harness = 'claude-code' | 'codex' | 'pi'
@@ -64,7 +64,7 @@ export interface ToolResult {
 }
 
 /**
- * One harness. Add a source by implementing this and listing it in `dailies-sources.ts`.
+ * One harness. Add a source by implementing this and listing it in `tapedeck-sources.ts`.
  * `relativePath` is the path under the source directory, with forward slashes.
  */
 export interface TranscriptSource {
@@ -74,7 +74,7 @@ export interface TranscriptSource {
 	readonly defaultDirectory: ReadonlyArray<string>
 	readonly matchesFile: (relativePath: string) => boolean
 	readonly detect: (headLines: ReadonlyArray<string>) => boolean
-	readonly parse: (text: string) => Result.Result<Transcript, DailiesParseError>
+	readonly parse: (text: string) => Result.Result<Transcript, TapedeckParseError>
 	readonly resumeCommand: (transcript: Transcript) => string
 }
 

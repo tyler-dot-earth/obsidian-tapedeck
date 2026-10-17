@@ -3,11 +3,11 @@ import { readFileSync } from 'node:fs'
 import { assert, describe, it } from '@effect/vitest'
 import { Result } from 'effect'
 
-import { claudeCodeSource } from '#/src/dailies-source-claude-code'
-import { codexSource } from '#/src/dailies-source-codex'
-import { piSource } from '#/src/dailies-source-pi'
-import { detectSource } from '#/src/dailies-sources'
-import type { ToolBlock, Transcript, TranscriptSource } from '#/src/dailies-transcript'
+import { claudeCodeSource } from '#/src/tapedeck-source-claude-code'
+import { codexSource } from '#/src/tapedeck-source-codex'
+import { piSource } from '#/src/tapedeck-source-pi'
+import { detectSource } from '#/src/tapedeck-sources'
+import type { ToolBlock, Transcript, TranscriptSource } from '#/src/tapedeck-transcript'
 
 const fixtures = {
 	claude:
