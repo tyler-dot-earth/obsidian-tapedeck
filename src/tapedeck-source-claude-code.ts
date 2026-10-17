@@ -2,17 +2,14 @@ import { Option, Result, Schema } from 'effect'
 
 import { newFileDiff, replacementDiff } from '#/src/tapedeck-diff'
 import { TapedeckParseError } from '#/src/tapedeck-errors'
-import {
-	decodeJsonLines,
-	someLineMatches,
-	prettyJson,
-	TextContent,
-	textOf,
-} from '#/src/tapedeck-json'
+import { imageBlock, imageFromUrl, imageLabel, placeLabelledImages } from '#/src/tapedeck-images'
+import { decodeJsonLines, someLineMatches, prettyJson, textOf } from '#/src/tapedeck-json'
 import {
 	appendTurn,
+	type ImageSource,
 	jsonLines,
 	titleFromTurns,
+	toolResultFields,
 	type ToolResult,
 	type Transcript,
 	type TranscriptBlock,
@@ -25,15 +22,35 @@ import {
  * id>.jsonl`. Lines of type `user` and `assistant` carry an Anthropic Messages API `message`.
  * Assistant content is split across lines, one content block each.
  */
+/** Anthropic image source: base64 bytes, or (in API-shaped data) a URL or uploaded file. */
+const ClaudeImageSource = Schema.Struct({
+	type: Schema.String,
+	media_type: Schema.optionalKey(Schema.String),
+	data: Schema.optionalKey(Schema.String),
+	url: Schema.optionalKey(Schema.String),
+})
+
+type ClaudeImageSource = Schema.Schema.Type<typeof ClaudeImageSource>
+
+/** Text or image part inside a tool result. */
+const ClaudePart = Schema.Struct({
+	type: Schema.String,
+	text: Schema.optionalKey(Schema.String),
+	source: Schema.optionalKey(ClaudeImageSource),
+})
+
+type ClaudePart = Schema.Schema.Type<typeof ClaudePart>
+
 const ClaudeBlock = Schema.Struct({
 	type: Schema.String,
+	source: Schema.optionalKey(ClaudeImageSource),
 	text: Schema.optionalKey(Schema.String),
 	thinking: Schema.optionalKey(Schema.String),
 	name: Schema.optionalKey(Schema.String),
 	id: Schema.optionalKey(Schema.String),
 	input: Schema.optionalKey(Schema.Json),
 	tool_use_id: Schema.optionalKey(Schema.String),
-	content: Schema.optionalKey(TextContent),
+	content: Schema.optionalKey(Schema.Union([Schema.String, Schema.Array(ClaudePart)])),
 	is_error: Schema.optionalKey(Schema.Boolean),
 })
 
@@ -46,6 +63,8 @@ const ClaudeLine = Schema.Struct({
 	timestamp: Schema.optionalKey(Schema.String),
 	isMeta: Schema.optionalKey(Schema.Boolean),
 	isSidechain: Schema.optionalKey(Schema.Boolean),
+	/** Paste numbers of the message's image blocks, in order: `[1]` pairs with `[Image #1]`. */
+	imagePasteIds: Schema.optionalKey(Schema.Array(Schema.Number)),
 	message: Schema.optionalKey(
 		Schema.Struct({
 			role: Schema.optionalKey(Schema.String),
@@ -91,6 +110,26 @@ const toolDiff = (input: Schema.Json): string | undefined =>
 		onSome: editDiff,
 	})
 
+/** Where a Claude image's bytes are. */
+export const claudeImageSource = (source: ClaudeImageSource | undefined): ImageSource => {
+	if (source?.type === 'base64' && source.data !== undefined) {
+		return { kind: 'inline', mimeType: source.media_type ?? 'image/png', base64: source.data }
+	}
+
+	if (source?.type === 'url' && source.url !== undefined) {
+		return imageFromUrl(source.url)
+	}
+
+	return { kind: 'missing', reason: 'the session file does not include the image data' }
+}
+
+const resultImages = (content: ClaudeBlock['content']): ReadonlyArray<ImageSource> =>
+	content === undefined || Schema.is(Schema.String)(content)
+		? []
+		: content.flatMap((part: ClaudePart) =>
+				part.type === 'image' ? [claudeImageSource(part.source)] : [],
+			)
+
 const collectResults = (lines: ReadonlyArray<ClaudeLine>): Map<string, ToolResult> => {
 	const results = new Map<string, ToolResult>()
 
@@ -100,6 +139,7 @@ const collectResults = (lines: ReadonlyArray<ClaudeLine>): Map<string, ToolResul
 				output: textOf(block.content),
 				isError: block.is_error ?? false,
 				diff: undefined,
+				images: resultImages(block.content),
 			})
 		}
 	}
@@ -139,8 +179,7 @@ const toBlock = (block: ClaudeBlock, results: Map<string, ToolResult>): Array<Tr
 			name: block.name ?? 'tool',
 			input: prettyJson(input),
 			diff: toolDiff(input),
-			output: result?.output,
-			isError: result?.isError ?? false,
+			...toolResultFields(result),
 		},
 	]
 }
@@ -159,7 +198,20 @@ const lineBlocks = (
 		return content.trim() === '' ? [] : [{ kind: 'text', text: content }]
 	}
 
-	return content.flatMap((block) => toBlock(block, results))
+	let images = 0
+
+	const blocks = content.flatMap((block): Array<TranscriptBlock> => {
+		if (block.type !== 'image') {
+			return toBlock(block, results)
+		}
+
+		const paste = line.imagePasteIds?.[images] ?? images + 1
+		images += 1
+
+		return [imageBlock(claudeImageSource(block.source), imageLabel(paste))]
+	})
+
+	return placeLabelledImages(blocks)
 }
 
 const isConversationLine = (line: ClaudeLine): boolean =>

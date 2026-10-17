@@ -1,6 +1,7 @@
 import { localDateTime, localTime, parseTimestamp } from '#/src/tapedeck-filename'
 import { redactHomePaths, redactSecrets } from '#/src/tapedeck-redact'
 import type {
+	ImageSource,
 	ToolBlock,
 	Transcript,
 	TranscriptBlock,
@@ -83,6 +84,33 @@ const toolInput = (block: ToolBlock): string | undefined => {
 	return codeBlock(/^[[{]/.test(input) ? 'json' : 'text', input)
 }
 
+/**
+ * An image: the embed when it was saved to the vault, a link when it is remote, otherwise a short
+ * note saying why it is not there, using the harness's own label when it had one.
+ */
+export const renderImage = (source: ImageSource, label: string | undefined): string => {
+	const name = label ?? 'Image'
+
+	switch (source.kind) {
+		case 'vault':
+			return source.embed
+		case 'url':
+			return `[🖼️ ${name}](${source.url})`
+		case 'missing':
+			return `*⏸️ ${name} not imported: ${source.reason}*`
+		case 'inline':
+		case 'file':
+			return `*⏸️ ${name} not imported*`
+	}
+
+	return `*⏸️ ${name} not imported*`
+}
+
+const toolImages = (block: ToolBlock, options: RenderOptions): string | undefined =>
+	block.images.length === 0 || options.toolOutput === 'none'
+		? undefined
+		: block.images.map((image) => renderImage(image, undefined)).join('\n\n')
+
 const renderTool = (block: ToolBlock, options: RenderOptions): string => {
 	const fold = options.foldToolCalls ? '-' : '+'
 	const callout = block.isError ? 'failure' : 'example'
@@ -93,6 +121,7 @@ const renderTool = (block: ToolBlock, options: RenderOptions): string => {
 		toolInput(block),
 		block.diff === undefined ? undefined : codeBlock('diff', block.diff),
 		output === undefined ? undefined : codeBlock('text', output),
+		toolImages(block, options),
 	]
 
 	return quoted(parts.filter((part) => part !== undefined).join('\n\n'))
@@ -110,6 +139,8 @@ const renderBlock = (block: TranscriptBlock, options: RenderOptions): string | u
 			return quoted(`[!abstract]- ${block.title}\n${block.text.trim()}`)
 		case 'tool':
 			return renderTool(block, options)
+		case 'image':
+			return renderImage(block.source, block.label)
 	}
 
 	return undefined

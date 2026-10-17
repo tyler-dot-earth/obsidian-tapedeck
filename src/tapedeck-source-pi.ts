@@ -2,11 +2,14 @@ import { Option, Result, Schema } from 'effect'
 
 import { newFileDiff } from '#/src/tapedeck-diff'
 import { TapedeckParseError } from '#/src/tapedeck-errors'
+import { imageBlock } from '#/src/tapedeck-images'
 import { decodeJsonLines, prettyJson, someLineMatches, TextPart, textOf } from '#/src/tapedeck-json'
 import {
 	appendTurn,
+	type ImageSource,
 	jsonLines,
 	titleFromTurns,
+	toolResultFields,
 	type ToolResult,
 	type Transcript,
 	type TranscriptBlock,
@@ -26,6 +29,9 @@ const PiPart = Schema.Struct({
 	id: Schema.optionalKey(Schema.String),
 	name: Schema.optionalKey(Schema.String),
 	arguments: Schema.optionalKey(Schema.Json),
+	/** Image parts (`type: "image"`): base64 bytes and their MIME type. */
+	data: Schema.optionalKey(Schema.String),
+	mimeType: Schema.optionalKey(Schema.String),
 })
 
 type PiPart = Schema.Schema.Type<typeof PiPart>
@@ -98,11 +104,38 @@ const activeBranch = (entries: ReadonlyArray<PiEntry>): ReadonlyArray<PiEntry> =
 	return branch.toReversed()
 }
 
+/** Where a Pi image's bytes are. Pi stores them inline as `{ type: "image", data, mimeType }`. */
+const piImageSource = (part: PiPart): ImageSource =>
+	part.data === undefined
+		? { kind: 'missing', reason: 'the session file does not include the image data' }
+		: { kind: 'inline', mimeType: part.mimeType ?? 'image/png', base64: part.data }
+
+const contentParts = (content: PiMessage['content']): ReadonlyArray<PiPart> => {
+	const parts = content ?? []
+
+	return Schema.is(Schema.String)(parts) ? [{ type: 'text', text: parts }] : parts
+}
+
 const toolResultOf = (message: PiMessage): ToolResult => ({
 	output: partsText(message.content),
 	isError: message.isError ?? false,
 	diff: message.details?.patch ?? message.details?.diff,
+	images: contentParts(message.content).flatMap((part) =>
+		part.type === 'image' ? [piImageSource(part)] : [],
+	),
 })
+
+/** User text and images in order. Pi does not add `[Image #N]` placeholders. */
+const userBlocks = (content: PiMessage['content']): Array<TranscriptBlock> =>
+	contentParts(content).flatMap((part): Array<TranscriptBlock> => {
+		if (part.type === 'image') {
+			return [imageBlock(piImageSource(part), undefined)]
+		}
+
+		return part.text === undefined || part.text.trim() === ''
+			? []
+			: [{ kind: 'text', text: part.text }]
+	})
 
 const collectResults = (entries: ReadonlyArray<PiEntry>): Map<string, ToolResult> => {
 	const results = new Map<string, ToolResult>()
@@ -149,8 +182,7 @@ const toolCallBlock = (part: PiPart, result: ToolResult | undefined): Transcript
 		name,
 		input: prettyJson(input),
 		diff: result?.diff ?? writeDiffFor(name, input),
-		output: result?.output,
-		isError: result?.isError ?? false,
+		...toolResultFields(result),
 	}
 }
 
@@ -162,12 +194,6 @@ const partBlock = (part: PiPart, results: Map<string, ToolResult>): Array<Transc
 	return [toolCallBlock(part, results.get(part.id ?? ''))]
 }
 
-const assistantParts = (content: PiMessage['content']): ReadonlyArray<PiPart> => {
-	const parts = content ?? []
-
-	return Schema.is(Schema.String)(parts) ? [{ type: 'text', text: parts }] : parts
-}
-
 const bashBlock = (message: PiMessage): TranscriptBlock => ({
 	kind: 'tool',
 	name: 'bash (user)',
@@ -175,6 +201,7 @@ const bashBlock = (message: PiMessage): TranscriptBlock => ({
 	diff: undefined,
 	output: message.output,
 	isError: false,
+	images: [],
 })
 
 const messageBlocks = (
@@ -183,9 +210,9 @@ const messageBlocks = (
 ): ReadonlyArray<TranscriptBlock> => {
 	switch (message.role) {
 		case 'user':
-			return [{ kind: 'text', text: partsText(message.content) }]
+			return userBlocks(message.content)
 		case 'assistant':
-			return assistantParts(message.content).flatMap((part) => partBlock(part, results))
+			return contentParts(message.content).flatMap((part) => partBlock(part, results))
 		case 'bashExecution':
 			return [bashBlock(message)]
 		default:

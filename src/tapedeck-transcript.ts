@@ -24,6 +24,25 @@ export interface NoteBlock {
 	readonly text: string
 }
 
+/**
+ * Where an image's bytes are. Parsers produce `inline` (base64 in the session file), `file` (a path
+ * the harness recorded), `url`, or `missing`. The importer turns `inline` and `file` into `vault`
+ * (saved as an attachment, with the embed to write) or `missing` (with the reason).
+ */
+export type ImageSource =
+	| { readonly kind: 'inline'; readonly mimeType: string; readonly base64: string }
+	| { readonly kind: 'file'; readonly path: string }
+	| { readonly kind: 'url'; readonly url: string }
+	| { readonly kind: 'vault'; readonly embed: string }
+	| { readonly kind: 'missing'; readonly reason: string }
+
+/** An image in a turn. `label` is the harness's placeholder text, such as `[Image #1]`. */
+export interface ImageBlock {
+	readonly kind: 'image'
+	readonly source: ImageSource
+	readonly label: string | undefined
+}
+
 /** One tool call with its result, if the result was recorded. */
 export interface ToolBlock {
 	readonly kind: 'tool'
@@ -32,9 +51,11 @@ export interface ToolBlock {
 	readonly diff: string | undefined
 	readonly output: string | undefined
 	readonly isError: boolean
+	/** Images the tool returned, such as a screenshot or an image file it read. */
+	readonly images: ReadonlyArray<ImageSource>
 }
 
-export type TranscriptBlock = TextBlock | ThinkingBlock | NoteBlock | ToolBlock
+export type TranscriptBlock = TextBlock | ThinkingBlock | NoteBlock | ToolBlock | ImageBlock
 
 export type TurnRole = 'user' | 'assistant'
 
@@ -61,6 +82,7 @@ export interface ToolResult {
 	readonly output: string
 	readonly isError: boolean
 	readonly diff: string | undefined
+	readonly images: ReadonlyArray<ImageSource>
 }
 
 /**
@@ -77,6 +99,15 @@ export interface TranscriptSource {
 	readonly parse: (text: string) => Result.Result<Transcript, TapedeckParseError>
 	readonly resumeCommand: (transcript: Transcript) => string
 }
+
+/** Tool block fields that come from its recorded result, with defaults when there is none. */
+export const toolResultFields = (
+	result: ToolResult | undefined,
+): Pick<ToolBlock, 'output' | 'isError' | 'images'> => ({
+	output: result?.output,
+	isError: result?.isError ?? false,
+	images: result?.images ?? [],
+})
 
 /** Appends blocks, merging into the previous turn when the speaker did not change. */
 export const appendTurn = (

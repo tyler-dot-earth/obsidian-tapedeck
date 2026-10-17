@@ -125,6 +125,7 @@ describe('renderTranscriptNote', () => {
 							diff: undefined,
 							output: 'a ``` b',
 							isError: false,
+							images: [],
 						},
 					],
 				},
