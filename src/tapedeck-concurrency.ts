@@ -56,7 +56,7 @@ export class TimeSlicer {
 		}
 
 		await new Promise<void>((resolve) => {
-			setTimeout(resolve, 0)
+			window.setTimeout(resolve, 0)
 		})
 
 		this.sliceStart = performance.now()

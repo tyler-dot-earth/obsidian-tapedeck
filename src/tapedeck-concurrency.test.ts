@@ -1,9 +1,14 @@
 import { assert, describe, it } from '@effect/vitest'
 import { Effect } from 'effect'
+import { beforeAll, vi } from 'vitest'
 
 import { mapWithLimit, TimeSlicer } from '#/src/tapedeck-concurrency'
 
 describe('TimeSlicer', () => {
+	beforeAll(() => {
+		vi.stubGlobal('window', globalThis)
+	})
+
 	it.effect('lets queued work run once the slice is used up', () =>
 		Effect.promise(async () => {
 			let ran = false
