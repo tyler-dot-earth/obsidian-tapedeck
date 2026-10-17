@@ -208,3 +208,9 @@ pnpm dev
 pnpm build
 pnpm release -- patch
 ```
+
+## Continuous integration and releases
+
+- **Check** (`.github/workflows/check.yml`) runs `pnpm check` on every push to `main` and every pull request.
+- **Release** (`.github/workflows/release.yml`) runs on a pushed tag. The tag must be the bare `manifest.json` version, like `0.1.1` (Obsidian expects no `v`). It runs `pnpm check`, attests the build, and publishes a GitHub release with `main.js`, `manifest.json`, and `styles.css`.
+- `pnpm release -- patch` (or `minor`, `major`) bumps `package.json`, `manifest.json`, and `versions.json`, commits, tags, and pushes. It pushes to remotes named `github` and `origin`, so both must exist.
