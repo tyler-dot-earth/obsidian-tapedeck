@@ -6,11 +6,24 @@ Every coding agent session is a tape. Pop a Claude Code, Codex CLI, or Pi sessio
 
 Requires Obsidian 1.13.0 or newer, on desktop.
 
-1. Run **📼 Import from tape shelves**, pick **All enabled shelves** or one shelf, then pick a tape. The first row imports every listed tape. The last shelf row, **⏏️ One-off file…**, opens the file picker below.
+1. Run **📼 Import from tape shelves**, pick **All enabled shelves** or one shelf, then tick the tapes you want in the tape picker (see below) and press **Import N tapes**. The last shelf row, **⏏️ One-off file…**, opens the file picker below.
 2. Or run **⏏️ Import session file** and paste a path or choose a `.jsonl` file. Tapedeck works out which agent wrote it.
 3. In a transcript note, run **⏪ Re-import current transcript** to pull the latest version of that session.
 
 Importing a session that already has a note updates that note. It finds it by `session_id`, so you never get duplicates. Re-imports keep `created` and whatever you typed into `project`, and add `updated`.
+
+## Tape picker
+
+After you pick a shelf, the tape picker lists **every** tape on it, newest first (by when the file last changed). Each row shows the agent emoji, date and time, project, and first prompt, for example `🟠 2026-01-15 09:00 · demo · Make the greeting say hello world`. Tapes that already have a note are marked `⏪ in vault`; importing them again updates that note.
+
+- **Search** matches every word you type against the agent, shelf, project, first prompt, and date, so `demo 2026-01` finds January tapes from the demo project.
+- **Nothing is selected** when the picker opens. Click rows or use the keyboard to tick them. **Select all N** and **Select none** act on the rows your search currently shows; ticks outside the search are kept and counted as hidden.
+- **Keyboard**: ↑/↓ move the highlight (and focus the list), Space ticks the highlighted row, Enter imports what is ticked, typing jumps back to the search field, Esc closes.
+- **Import N tapes** imports the ticked tapes, four at a time. A single tape opens its note when done.
+
+The project comes from the session's working directory. Until a tape's first lines are read, Claude Code and Pi rows show a guess from their project folder name (with your home folder stripped, e.g. `code-my-app`); Codex rows show `—`.
+
+Rows appear straight away and first prompts fill in as they are read. Tapedeck reads only the first 64 KB of each tape (1 MB if that is not enough), eight at a time, newest first, and remembers what it read until the file changes, so reopening the picker is instant. Up to 300 matching rows are drawn at once; search still covers every tape.
 
 ## Tape shelves
 
@@ -81,7 +94,7 @@ Tool calls are callouts, folded by default. Input is a JSON block, edits and pat
 
 ## Settings
 
-- **📼 Tape shelves**: saved folders to import from (see above), restore defaults, and how many recent tapes to list.
+- **📼 Tape shelves**: saved folders to import from (see above) and restore defaults. The old "recent sessions to list" setting is gone, since the picker searches every tape; an old value in `data.json` is ignored.
 - **🏷️ Notes**: import folder, filename pattern (`{date} {time} {harness} {session} {title}`), raw or summary style, fold tool calls, tool output (full, truncated, none), truncate length, include thinking.
 - **✂️ Redaction**: home folder as `~`, and mask secrets (API keys, GitHub and Slack tokens, AWS keys, JWTs, bearer headers, private keys, `key=value` secrets). These are simple patterns. Read a note before you share it.
 
