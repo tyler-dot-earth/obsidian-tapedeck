@@ -20,7 +20,7 @@ After you pick a shelf, the tape picker lists **every** tape on it, newest first
 - **Search** matches every word you type against the agent, shelf, project, title, and date, so `mixtape 2026-01` finds January tapes from the mixtape project.
 - **Nothing is selected** when the picker opens. Click rows or use the keyboard to tick them. **Select all N** and **Select none** act on the rows your search currently shows; ticks outside the search are kept and counted as hidden.
 - **Keyboard**: ↑/↓ move the highlight (and focus the list), Space ticks the highlighted row, Enter imports what is ticked, typing jumps back to the search field, Esc closes.
-- **Import N tapes** imports the ticked tapes, four at a time. A single tape opens its note when done.
+- **Import N tapes** imports the ticked tapes, four at a time. A single tape opens its note in a new tab when done.
 
 The project comes from the session's working directory. Until a tape's first lines are read, Claude Code and Pi rows show a guess from their project folder name (with your home folder stripped, e.g. `code-rec-light`); Codex rows show `—`.
 
@@ -35,7 +35,7 @@ Each row shows a checkbox, the agent emoji, date and time, project (with the wor
 - **Click a row** to preview it: a read-only window with the title, agent, project and branch, date, turn count, and the first few turns rendered like the note, with **Import** (or **Re-import** and **Open note**) and **Close**. Previewing never writes to the vault. A row that is already in the vault opens its note instead.
 - **The row button** imports, or re-imports a tape that is in the vault. With a mouse it appears over the row's right edge on hover, so it takes no width; on touch screens it sits after the badge.
 - **Tick rows** and press **Import N tapes** to import several at once; **Clear** drops the ticks. Importing more than 20 at once asks first.
-- **After an import** the row stays where it is with an **imported ✓** badge that opens the note, even with **Hide imported** on, until the next refresh or filter change. One tape gives a notice you can click to open the note; several give one summary with counts. A tape that fails gets an **import failed** badge (hover for the reason) and a notice.
+- **After an import** the row stays where it is with an **imported ✓** badge that opens the note, even with **Hide imported** on, until the next refresh or filter change. One tape opens its note in a new tab, with a notice you can click to open it again; several open nothing and give one summary with counts. A tape that fails gets an **import failed** badge (hover for the reason) and a notice.
 - **Search** works like the tape picker. Rows are grouped **by project** at first; switch to **by shelf** or **no groups**, click a heading to fold it, or use the fold button to collapse or expand every group. **Hide imported** shows only tapes without a note.
 - **Refresh** (↻) re-lists the shelves. The rack also re-lists when it opens, when you come back to it after 30 seconds, and every 5 minutes while it is on screen. Listing never imports anything; only your clicks do, unless you turn on auto-import for a shelf.
 
@@ -53,7 +53,7 @@ Auto-import is off for every shelf until you pick a schedule under **⏰ Auto-im
 - Only tapes modified after you turned auto-import on are touched, so turning it on never sweeps in your history.
 - Subagent threads and empty files are skipped, as in the rack.
 - On startup a shelf runs only if a run is due; runs never overlap.
-- A run that imports something shows one summary notice; a run with nothing to do stays quiet.
+- A run that imports something shows one summary notice and never opens a tab; a run with nothing to do stays quiet.
 
 Turning it off clears the start time, so turning it on again starts fresh.
 

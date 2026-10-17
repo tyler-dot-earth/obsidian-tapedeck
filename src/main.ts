@@ -29,7 +29,7 @@ import {
 	withTapeShelves,
 } from '#/src/tapedeck-plugin-settings'
 import type { TapePreview } from '#/src/tapedeck-preview'
-import { importSummary, type TapeImportResult } from '#/src/tapedeck-rack-list'
+import { importSummary, noteToOpen, type TapeImportResult } from '#/src/tapedeck-rack-list'
 import { listSessionFiles, type SessionFile } from '#/src/tapedeck-session-files'
 import { TapedeckSettingTab } from '#/src/tapedeck-setting-tab'
 import { type ShelfPick, ShelfSuggestModal } from '#/src/tapedeck-shelf-modals'
@@ -188,15 +188,16 @@ export default class TapedeckPlugin extends Plugin {
 		return files
 	}
 
-	private async openNote(path: string): Promise<void> {
+	/** Opens a note in the current tab, or in a new tab after an import. */
+	private async openNote(path: string, where: 'here' | 'tab' = 'here'): Promise<void> {
 		const file = this.app.vault.getFileByPath(path)
 
 		if (file !== null) {
-			await this.app.workspace.getLeaf(false).openFile(file)
+			await this.app.workspace.getLeaf(where === 'tab' ? 'tab' : false).openFile(file)
 		}
 	}
 
-	/** One tape imports and opens its note; several import together with one summary notice. */
+	/** One tape imports and opens its note in a new tab; several import with one summary notice. */
 	private async importTapes(files: ReadonlyArray<SessionFile>): Promise<void> {
 		const [only] = files
 
@@ -245,7 +246,7 @@ export default class TapedeckPlugin extends Plugin {
 					return isTranscript
 				}
 
-				void this.run(this.importer.reimport(file))
+				void this.run(this.importer.reimport(file), 'stay')
 
 				return true
 			},
@@ -298,8 +299,8 @@ export default class TapedeckPlugin extends Plugin {
 	}
 
 	/**
-	 * Imports tapes without opening their notes, reporting every result: a clickable notice for one
-	 * tape, a summary for several. Failures never pass silently.
+	 * Imports tapes, reporting every result: a clickable notice for one tape, a summary for several.
+	 * A single imported tape opens in a new tab; several open nothing. Failures never pass silently.
 	 */
 	private async importAndReport(
 		files: ReadonlyArray<SessionFile>,
@@ -313,6 +314,11 @@ export default class TapedeckPlugin extends Plugin {
 		)
 
 		this.announce(results)
+		const single = noteToOpen(results)
+
+		if (single !== undefined) {
+			await this.openNote(single, 'tab')
+		}
 
 		return results
 	}
@@ -358,12 +364,19 @@ export default class TapedeckPlugin extends Plugin {
 		})
 	}
 
-	private async run(task: Promise<ImportOutcome>): Promise<void> {
+	/**
+	 * Runs one import with a notice. The note opens in a new tab, except when re-importing the note
+	 * already in front of you (`stay`).
+	 */
+	private async run(task: Promise<ImportOutcome>, open: 'tab' | 'stay' = 'tab'): Promise<void> {
 		try {
 			const outcome = await task
 			const verb = outcome.updated ? '⏪ Updated' : '⏏️ Imported'
 			new Notice(`${verb} ${outcome.file.basename}`)
-			await this.app.workspace.getLeaf(false).openFile(outcome.file)
+
+			if (open === 'tab') {
+				await this.app.workspace.getLeaf('tab').openFile(outcome.file)
+			}
 		} catch (error) {
 			new Notice(`⏹️ Tapedeck: ${tapedeckErrorMessage(error)}`)
 		}

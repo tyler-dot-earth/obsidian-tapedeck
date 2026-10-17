@@ -3,6 +3,7 @@ import { assert, describe, it } from '@effect/vitest'
 import {
 	allFolded,
 	importSummary,
+	noteToOpen,
 	RenderGate,
 	rowOutcome,
 	type TapeImportResult,
@@ -182,5 +183,23 @@ describe('RenderGate', () => {
 		const gate = new RenderGate()
 		gate.hold()
 		assert.isFalse(gate.release())
+	})
+})
+
+describe('noteToOpen', () => {
+	it('opens the note only when exactly one tape was imported', () => {
+		const ok: TapeImportResult = {
+			path: '/tapes/a.jsonl',
+			ok: true,
+			notePath: 'Transcripts/a.md',
+			title: 'Rewind button',
+			updated: false,
+		}
+
+		const failed: TapeImportResult = { path: '/tapes/b.jsonl', ok: false, message: 'unreadable' }
+		assert.strictEqual(noteToOpen([ok]), 'Transcripts/a.md')
+		assert.isUndefined(noteToOpen([ok, { ...ok, path: '/tapes/c.jsonl' }]))
+		assert.isUndefined(noteToOpen([failed]))
+		assert.isUndefined(noteToOpen([]))
 	})
 })

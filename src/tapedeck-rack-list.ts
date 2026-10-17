@@ -158,6 +158,13 @@ export const importSummary = (
 	return `${prefix}: ${created} new, ${updated} updated${failures}.`
 }
 
+/** The note to open after an import: only when exactly one tape was imported, and it worked. */
+export const noteToOpen = (results: ReadonlyArray<TapeImportResult>): string | undefined => {
+	const [only] = results
+
+	return results.length === 1 && only?.ok === true ? only.notePath : undefined
+}
+
 /**
  * Holds redraws while the pointer is down on the list. Redrawing replaces row elements, and a click
  * whose press and release land on different elements never fires, so redraws that arrive mid-click
