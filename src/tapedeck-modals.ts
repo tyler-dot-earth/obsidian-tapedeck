@@ -21,7 +21,7 @@ export class ImportFileModal extends Modal {
 		new Setting(this.contentEl)
 			.setClass('tapedeck-import-path')
 			.setName('Path')
-			.setDesc('Full path to a .jsonl session file. ~ works.')
+			.setDesc('Full path to a .jsonl session file (~ works).')
 			.addText((text) =>
 				text.setPlaceholder('~/.claude/projects/…/session.jsonl').onChange((value) => {
 					this.path = value.trim()

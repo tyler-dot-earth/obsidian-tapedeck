@@ -121,7 +121,7 @@ export default class TapedeckPlugin extends Plugin {
 		const files = await Effect.runPromise(listSessionFiles(shelves)).catch(() => [])
 
 		if (files.length === 0) {
-			new Notice(`📺 Tapedeck: no tapes found on ${where}. Check Tape shelves in settings.`)
+			new Notice(`📺 Tapedeck: no tapes found on ${where} (check Tape shelves in settings).`)
 
 			return
 		}

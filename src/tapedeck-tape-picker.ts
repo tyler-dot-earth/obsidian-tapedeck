@@ -223,7 +223,7 @@ export class TapePickerModal extends Modal {
 		if (this.shown.length > renderLimit) {
 			this.listEl.createDiv({
 				cls: 'tapedeck-picker-note',
-				text: `Showing the newest ${renderLimit} of ${this.shown.length} matches. Type to narrow the list.`,
+				text: `Showing the newest ${renderLimit} of ${this.shown.length} matches; type to narrow the list.`,
 			})
 		}
 	}

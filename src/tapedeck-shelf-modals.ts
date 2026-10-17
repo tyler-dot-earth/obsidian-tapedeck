@@ -35,7 +35,7 @@ export class ShelfEditModal extends Modal {
 
 		new Setting(this.contentEl)
 			.setName('Label')
-			.setDesc('Optional. Shown in the import picker instead of the folder.')
+			.setDesc('Optional name shown instead of the folder.')
 			.addText((text) =>
 				text
 					.setPlaceholder('Work laptop sessions')
@@ -48,7 +48,7 @@ export class ShelfEditModal extends Modal {
 		new Setting(this.contentEl)
 			.setClass('tapedeck-import-path')
 			.setName('Folder')
-			.setDesc('Full path to a folder of .jsonl session files. ~ means your home folder.')
+			.setDesc('Folder of .jsonl session files (~ is your home folder).')
 			.addText((text) =>
 				text
 					.setPlaceholder('~/path/to/sessions')
@@ -60,7 +60,7 @@ export class ShelfEditModal extends Modal {
 
 		new Setting(this.contentEl)
 			.setName('Agent')
-			.setDesc('Which agent wrote these tapes. Auto-detect reads the first lines of each file.')
+			.setDesc('Which agent wrote these tapes (Auto-detect reads each file).')
 			.addDropdown((dropdown) =>
 				dropdown
 					.addOptions(shelfHarnessLabels)

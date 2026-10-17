@@ -42,7 +42,7 @@ export class TapedeckSettingTab extends PluginSettingTab {
 			},
 			{
 				name: 'Note style',
-				desc: 'Raw keeps every tool call. Summary keeps the conversation and lists tools per turn.',
+				desc: 'Raw keeps every tool call; Summary lists tools per turn.',
 				control: {
 					type: 'dropdown',
 					key: 'noteStyle',
@@ -56,7 +56,7 @@ export class TapedeckSettingTab extends PluginSettingTab {
 			},
 			{
 				name: 'Tool output',
-				desc: 'Full keeps everything. Truncated keeps the first lines.',
+				desc: 'Full keeps everything; Truncated keeps the first lines.',
 				control: {
 					type: 'dropdown',
 					key: 'toolOutput',
@@ -75,22 +75,22 @@ export class TapedeckSettingTab extends PluginSettingTab {
 			},
 			{
 				name: '⏸️ Freeze-frames',
-				desc: 'Images pasted into a session or returned by a tool. They are saved to your attachment folder (Settings → Files and links) and embedded where they appeared in the turn.',
+				desc: 'Images from tapes, saved to your attachment folder and embedded where they appeared.',
 				aliases: ['images', 'screenshots', 'attachments'],
 			},
 			{
 				name: 'Import freeze-frames',
-				desc: 'Save images from tapes into the vault. When off, a short note marks where each image was.',
+				desc: 'Save images into the vault, or leave a short note where each one was.',
 				control: { type: 'toggle', key: 'importImages' },
 			},
 			{
 				name: 'Freeze-frame size limit (MB)',
-				desc: 'Skip images bigger than this and leave a note instead. 0 means no limit.',
+				desc: 'Bigger images get a note instead (0 means no limit).',
 				control: { type: 'number', key: 'maxImageMB', placeholder: '0' },
 			},
 			{
 				name: '✂️ Redaction',
-				desc: 'Applied to the whole note at import. Basic patterns, not a guarantee.',
+				desc: 'Basic patterns applied to the whole note, not a guarantee.',
 			},
 			{
 				name: 'Home folder as ~',
