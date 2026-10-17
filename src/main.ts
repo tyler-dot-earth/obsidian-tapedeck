@@ -7,7 +7,7 @@ import {
 	pluginDataStoreLayerFromHost,
 } from '@tyler.earth/effect-obsidian'
 import { Effect, Layer, Logger, type ManagedRuntime } from 'effect'
-import { Notice, Plugin } from 'obsidian'
+import { debounce, normalizePath, Notice, Plugin } from 'obsidian'
 
 import {
 	AutoImportRunner,
@@ -35,10 +35,14 @@ import { listSessionFiles, type SessionFile } from '#/src/tapedeck-session-files
 import { TapedeckSettingTab } from '#/src/tapedeck-setting-tab'
 import { type ShelfPick, ShelfSuggestModal } from '#/src/tapedeck-shelf-modals'
 import { expandHome, shelfName, type TapeShelf } from '#/src/tapedeck-shelves'
+import { decodeTapeCache, encodeTapeCache, tapeCacheFileName } from '#/src/tapedeck-tape-cache-file'
 import { TapeInfoCache } from '#/src/tapedeck-tape-info'
 import type { NoteLookup } from '#/src/tapedeck-tape-list'
 import { TapePickerModal } from '#/src/tapedeck-tape-picker'
 import { tapeRackViewType, TapeRackView } from '#/src/tapedeck-tape-rack'
+
+/** Quiet time after the last tape read before the tape cache file is saved. */
+const tapeCacheSaveMs = 5000
 
 /** Longest wait for an idle moment before the startup auto-import check runs anyway. */
 const startupIdleMs = 10_000
@@ -55,6 +59,18 @@ export default class TapedeckPlugin extends Plugin {
 		this.app,
 		() => resolveTapedeckSettings(this.settings),
 		this.threadNames,
+	)
+
+	/** Loads the tape cache file once, before the first listing. */
+	private tapeCacheLoad: Promise<void> | undefined
+
+	/** Saves the tape cache file a few seconds after tapes stop being read. */
+	private readonly saveTapeCache = debounce(
+		() => {
+			void this.writeTapeCache().catch(() => undefined)
+		},
+		tapeCacheSaveMs,
+		true,
 	)
 
 	/** Fires when a Tapedeck note is added, changed, renamed, or deleted. */
@@ -87,6 +103,7 @@ export default class TapedeckPlugin extends Plugin {
 		this.registerCommands()
 		this.registerTapeRack()
 		this.watchNotes()
+		this.register(this.tapeInfo.changed.on(() => this.saveTapeCache()))
 		this.app.workspace.onLayoutReady(() => {
 			this.startAutoImport()
 		})
@@ -148,6 +165,7 @@ export default class TapedeckPlugin extends Plugin {
 	/** New and changed sessions on a shelf modified after its auto-import was turned on. */
 	private async autoImportShelf(shelf: TapeShelf): Promise<ReadonlyArray<TapeImportResult>> {
 		const since = shelf.autoImportSince ?? Date.now()
+		await this.loadTapeCache()
 		const listed = await Effect.runPromise(listSessionFiles([shelf])).catch(() => [])
 		const files = listed.filter((file) => isModifiedSince(file.modifiedAt, since))
 
@@ -216,8 +234,46 @@ export default class TapedeckPlugin extends Plugin {
 		await workspace.revealLeaf(leaf)
 	}
 
+	/** Where the tape cache lives: the plugin's own folder in this vault. */
+	private tapeCachePath(): string | undefined {
+		const folder = this.manifest.dir
+
+		return folder === undefined ? undefined : normalizePath(`${folder}/${tapeCacheFileName}`)
+	}
+
+	/** Restores titles and projects read in earlier sessions, once, before anything is listed. */
+	private async loadTapeCache(): Promise<void> {
+		this.tapeCacheLoad ??= this.readTapeCache()
+
+		await this.tapeCacheLoad
+	}
+
+	private async readTapeCache(): Promise<void> {
+		const path = this.tapeCachePath()
+		const { adapter } = this.app.vault
+
+		if (path === undefined || !(await adapter.exists(path).catch(() => false))) {
+			return
+		}
+
+		const text = await adapter.read(path).catch(() => undefined)
+		this.tapeInfo.restore(decodeTapeCache(text))
+	}
+
+	private async writeTapeCache(): Promise<void> {
+		const path = this.tapeCachePath()
+
+		if (path === undefined || this.tapeCacheLoad === undefined) {
+			return
+		}
+
+		await this.tapeCacheLoad
+		await this.app.vault.adapter.write(path, encodeTapeCache(this.tapeInfo.snapshot()))
+	}
+
 	private async listShelfTapes(): Promise<ReadonlyArray<SessionFile>> {
 		const { tapeShelves } = resolveTapedeckSettings(this.settings)
+		await this.loadTapeCache()
 
 		const files = await Effect.runPromise(listSessionFiles(tapeShelves)).catch(() => [])
 		await this.tapeInfo.prepare(files).catch(() => undefined)
@@ -315,6 +371,7 @@ export default class TapedeckPlugin extends Plugin {
 	}
 
 	private async pickTapes(shelves: ReadonlyArray<TapeShelf>, where: string): Promise<void> {
+		await this.loadTapeCache()
 		const files = await Effect.runPromise(listSessionFiles(shelves)).catch(() => [])
 		await this.tapeInfo.prepare(files).catch(() => undefined)
 
@@ -424,6 +481,7 @@ export default class TapedeckPlugin extends Plugin {
 	}
 
 	override onunload(): void {
+		this.saveTapeCache.run()
 		void disposePluginRuntime(this.runtime)
 		this.runtime = undefined
 	}

@@ -5,10 +5,12 @@ import { Result } from 'effect'
 
 import { CodexThreadNames } from '#/src/tapedeck-codex-names'
 import { TimeSlicer } from '#/src/tapedeck-concurrency'
+import { ChangeSignal } from '#/src/tapedeck-note-index'
 import { ProjectPlaces } from '#/src/tapedeck-project-places'
 import { placeFromEncodedName, type ProjectPlace } from '#/src/tapedeck-projects'
 import { readHead, readTail, type SessionFile } from '#/src/tapedeck-session-files'
 import { shelfName, shelfRoot } from '#/src/tapedeck-shelves'
+import type { CacheEntry } from '#/src/tapedeck-tape-cache-file'
 import {
 	type ImportedNote,
 	type NoteLookup,
@@ -125,6 +127,10 @@ export class TapeInfoCache {
 	private readonly names: CodexThreadNames
 	private readonly places: ProjectPlaces
 	private readonly slicer = new TimeSlicer()
+	/** Current cache key for each tape path seen, so saving keeps only live entries. */
+	private readonly latest = new Map<string, string>()
+	/** Fires when a tape is read for the first time, so the cache file can be saved. */
+	readonly changed = new ChangeSignal()
 
 	constructor(
 		names: CodexThreadNames = new CodexThreadNames(),
@@ -143,6 +149,10 @@ export class TapeInfoCache {
 	 * call after listing the shelves.
 	 */
 	async prepare(files: ReadonlyArray<SessionFile>, home: string = homedir()): Promise<void> {
+		for (const file of files) {
+			this.latest.set(file.path, TapeInfoCache.key(file))
+		}
+
 		const codex = files.filter((file) => file.source.harness === 'codex')
 		const folders = files.flatMap((file) => layoutFolder(file, home) ?? [])
 		await this.names.loadAll(codex.map((file) => file.path))
@@ -179,9 +189,29 @@ export class TapeInfoCache {
 
 		const info = await readInfo(file, this.places)
 		this.entries.set(TapeInfoCache.key(file), info)
+		this.latest.set(file.path, TapeInfoCache.key(file))
+		this.changed.trigger()
 		await this.slicer.pause()
 
 		return this.named(file, info)
+	}
+
+	/** Adds entries from the cache file; entries read this session win. */
+	restore(entries: ReadonlyArray<CacheEntry>): void {
+		for (const { key, info } of entries) {
+			if (!this.entries.has(key)) {
+				this.entries.set(key, info)
+			}
+		}
+	}
+
+	/** Entries for the current version of every tape seen, for the cache file. */
+	snapshot(): ReadonlyArray<CacheEntry> {
+		return [...this.latest.values()].flatMap((key) => {
+			const info = this.entries.get(key)
+
+			return info === undefined ? [] : [{ key, info }]
+		})
 	}
 
 	private named(file: SessionFile, info: TapeInfo): TapeInfo {

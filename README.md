@@ -158,7 +158,7 @@ Tapedeck is desktop only because it reads files outside your vault with Node's `
 - **Reads** session files from the default shelves, `~/.claude/projects`, `~/.codex/sessions`, and `~/.pi/agent/sessions`, plus any shelf folder you add and any file you pick with **⏏️ Import session file**. It also reads `~/.codex/session_index.jsonl` for Codex thread names.
 - **Looks at folders under your home folder** to match project and worktree names: it lists folder names and reads worktree `.git` files, nothing else.
 - **Copies local images** that a Codex session referenced by path into your vault, if the file still exists.
-- **Writes only to your vault**: transcript notes in your import folder and images in your attachment folder. It never changes session files.
+- **Writes only to your vault**: transcript notes in your import folder, images in your attachment folder, and `tape-cache.json` in Tapedeck's plugin folder, which keeps each tape's title, working directory, and project so a restart does not re-read every tape (delete it any time). It never changes session files.
 - **Makes no network requests.** Remote image URLs are kept as links, not downloaded.
 - **Redaction is best-effort.** The home-folder and secret patterns catch common cases, not every secret, so read a note before you share it.
 - **Notes include a machine name** (your computer's hostname in the `machine` property) unless you turn off **Machine name** under ✂️ Redaction.

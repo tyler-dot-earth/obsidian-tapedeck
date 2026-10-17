@@ -7,6 +7,7 @@ import { Effect } from 'effect'
 
 import { listSessionFiles, type SessionFile } from '#/src/tapedeck-session-files'
 import { defaultTapeShelves } from '#/src/tapedeck-shelves'
+import { decodeTapeCache, encodeTapeCache } from '#/src/tapedeck-tape-cache-file'
 import { TapeInfoCache, tapeRow } from '#/src/tapedeck-tape-info'
 import type { ImportedNote } from '#/src/tapedeck-tape-list'
 
@@ -139,5 +140,51 @@ describe('TapeInfoCache', () => {
 		writeFileSync(broken, 'not json\n')
 		const info = await new TapeInfoCache().read({ ...claude, path: broken, size: 9 })
 		assert.strictEqual(info.title, 'unreadable tape')
+	})
+})
+
+describe('tape cache file', () => {
+	it('round-trips what was read, so a restart peeks instead of reading', async () => {
+		const pi = await byHarness('pi')
+		const first = new TapeInfoCache()
+		await first.prepare([pi], home)
+		const info = await first.read(pi)
+		const text = encodeTapeCache(first.snapshot())
+
+		const second = new TapeInfoCache()
+		assert.isUndefined(second.peek(pi))
+		second.restore(decodeTapeCache(text))
+		assert.deepStrictEqual(second.peek(pi), info)
+	})
+
+	it('misses when the tape changed since it was cached', async () => {
+		const pi = await byHarness('pi')
+		const first = new TapeInfoCache()
+		await first.read(pi)
+
+		const second = new TapeInfoCache()
+		second.restore(decodeTapeCache(encodeTapeCache(first.snapshot())))
+		assert.isUndefined(second.peek({ ...pi, size: pi.size + 1 }))
+	})
+
+	it('ignores a missing or damaged file', () => {
+		assert.deepStrictEqual(decodeTapeCache(undefined), [])
+		assert.deepStrictEqual(decodeTapeCache('{"version":1,"tapes":[{"key":3}]}'), [])
+		assert.deepStrictEqual(decodeTapeCache('not json'), [])
+		assert.deepStrictEqual(decodeTapeCache('{"version":2,"tapes":[]}'), [])
+	})
+
+	it('signals new reads, not cache hits', async () => {
+		const pi = await byHarness('pi')
+		const cache = new TapeInfoCache()
+		let reads = 0
+
+		cache.changed.on(() => {
+			reads += 1
+		})
+
+		await cache.read(pi)
+		await cache.read(pi)
+		assert.strictEqual(reads, 1)
 	})
 })
