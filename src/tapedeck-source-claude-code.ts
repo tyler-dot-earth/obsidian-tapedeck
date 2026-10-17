@@ -4,11 +4,11 @@ import { newFileDiff, replacementDiff } from '#/src/tapedeck-diff'
 import { TapedeckParseError } from '#/src/tapedeck-errors'
 import { imageBlock, imageFromUrl, imageLabel, placeLabelledImages } from '#/src/tapedeck-images'
 import { decodeJsonLines, someLineMatches, prettyJson, textOf } from '#/src/tapedeck-json'
+import { harnessName, tapeTitle, titleFields, userTexts } from '#/src/tapedeck-tape-title'
 import {
 	appendTurn,
 	type ImageSource,
 	jsonLines,
-	titleFromTurns,
 	toolResultFields,
 	type ToolResult,
 	type Transcript,
@@ -223,11 +223,13 @@ const firstDefined = (values: ReadonlyArray<string | undefined>): string | undef
 	values.find((value) => value !== undefined && value !== '' && value !== '<synthetic>')
 
 const parse = (text: string): Result.Result<Transcript, TapedeckParseError> => {
-	const lines = decodeJsonLines(ClaudeLine, jsonLines(text)).filter(isConversationLine)
-	const sessionId = firstDefined(lines.map((line) => line.sessionId))
+	const raw = jsonLines(text)
+	const all = decodeJsonLines(ClaudeLine, raw)
+	const lines = all.filter(isConversationLine)
+	const sessionId = firstDefined(all.map((line) => line.sessionId))
 
 	if (sessionId === undefined) {
-		return Result.fail(new TapedeckParseError({ message: 'No Claude Code messages found' }))
+		return Result.fail(new TapedeckParseError({ message: 'No Claude Code session found' }))
 	}
 
 	const results = collectResults(lines)
@@ -245,9 +247,10 @@ const parse = (text: string): Result.Result<Transcript, TapedeckParseError> => {
 		harness: 'claude-code',
 		sessionId,
 		model: firstDefined(lines.map((line) => line.message?.model)),
-		cwd: firstDefined(lines.map((line) => line.cwd)),
+		cwd: firstDefined(all.map((line) => line.cwd)),
 		startedAt: firstDefined(lines.map((line) => line.timestamp)),
-		title: titleFromTurns(turns),
+		...titleFields(tapeTitle(harnessName('claude-code', raw), userTexts(turns))),
+		subagent: false,
 		turns,
 	})
 }

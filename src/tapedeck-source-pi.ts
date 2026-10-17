@@ -4,11 +4,11 @@ import { newFileDiff } from '#/src/tapedeck-diff'
 import { TapedeckParseError } from '#/src/tapedeck-errors'
 import { imageBlock } from '#/src/tapedeck-images'
 import { decodeJsonLines, prettyJson, someLineMatches, TextPart, textOf } from '#/src/tapedeck-json'
+import { harnessName, tapeTitle, titleFields, userTexts } from '#/src/tapedeck-tape-title'
 import {
 	appendTurn,
 	type ImageSource,
 	jsonLines,
-	titleFromTurns,
 	toolResultFields,
 	type ToolResult,
 	type Transcript,
@@ -250,7 +250,8 @@ const entryTurn = (entry: PiEntry, results: Map<string, ToolResult>): Transcript
 		: summaryTurn(entry)
 
 const parse = (text: string): Result.Result<Transcript, TapedeckParseError> => {
-	const entries = decodeJsonLines(PiEntry, jsonLines(text))
+	const raw = jsonLines(text)
+	const entries = decodeJsonLines(PiEntry, raw)
 	const header = entries.find((entry) => entry.type === 'session')
 
 	if (header?.id === undefined) {
@@ -277,7 +278,8 @@ const parse = (text: string): Result.Result<Transcript, TapedeckParseError> => {
 		model: models.find((model) => model !== undefined && model !== ''),
 		cwd: header.cwd,
 		startedAt: header.timestamp,
-		title: titleFromTurns(turns),
+		...titleFields(tapeTitle(harnessName('pi', raw), userTexts(turns))),
+		subagent: false,
 		turns,
 	})
 }

@@ -53,7 +53,7 @@ describe('renderTranscriptNote', () => {
 	})
 
 	it('labels the note as a tape', () => {
-		assert.include(note, '# 📼 Make the greeting say hello world')
+		assert.include(note, '# 📼 Fix greeting')
 	})
 
 	it('folds tool calls into callouts with output and diff blocks', () => {

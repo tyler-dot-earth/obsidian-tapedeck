@@ -1,6 +1,7 @@
 import type { Result } from 'effect'
 
 import type { TapedeckParseError } from '#/src/tapedeck-errors'
+import type { TitleSource } from '#/src/tapedeck-tape-title'
 
 /** Coding agent that wrote the session file. */
 export type Harness = 'claude-code' | 'codex' | 'pi'
@@ -74,6 +75,9 @@ export interface Transcript {
 	readonly cwd: string | undefined
 	readonly startedAt: string | undefined
 	readonly title: string
+	readonly titleSource: TitleSource
+	/** A helper thread the agent started (a Codex subagent or review), not a session you ran. */
+	readonly subagent: boolean
 	readonly turns: ReadonlyArray<TranscriptTurn>
 }
 
@@ -133,33 +137,6 @@ export const appendTurn = (
 	turns.push(next)
 
 	return turns
-}
-
-const titleLength = 72
-
-/** First line of the first user prompt, trimmed for a note title. */
-export const titleFromTurns = (turns: ReadonlyArray<TranscriptTurn>): string => {
-	for (const turn of turns) {
-		const text = turn.role === 'user' ? firstText(turn) : undefined
-
-		if (text !== undefined) {
-			const line = text.trim().split('\n')[0]?.trim() ?? ''
-
-			return line.length > titleLength ? `${line.slice(0, titleLength - 1)}…` : line
-		}
-	}
-
-	return 'Untitled session'
-}
-
-const firstText = (turn: TranscriptTurn): string | undefined => {
-	for (const block of turn.blocks) {
-		if (block.kind === 'text' && block.text.trim() !== '') {
-			return block.text
-		}
-	}
-
-	return undefined
 }
 
 /** Splits a jsonl file into non-empty lines. */

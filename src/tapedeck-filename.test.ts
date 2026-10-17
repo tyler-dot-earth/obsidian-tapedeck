@@ -10,6 +10,8 @@ const transcript: Transcript = {
 	cwd: undefined,
 	startedAt: '2026-03-04T05:06:07.000Z',
 	title: 'Fix: the [flaky] test?',
+	titleSource: 'prompt',
+	subagent: false,
 	turns: [],
 }
 

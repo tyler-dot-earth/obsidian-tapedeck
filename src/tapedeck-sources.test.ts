@@ -56,7 +56,8 @@ describe('Claude Code source', () => {
 		assert.strictEqual(transcript.model, 'claude-sonnet-4-5')
 		assert.strictEqual(transcript.cwd, '/home/sample/projects/demo')
 		assert.strictEqual(transcript.startedAt, '2026-01-15T09:00:01.000Z')
-		assert.match(transcript.title, /^Make the greeting say hello world/)
+		assert.strictEqual(transcript.title, 'Fix greeting')
+		assert.strictEqual(transcript.titleSource, 'name')
 	})
 
 	it('skips meta and sidechain lines and merges assistant lines into turns', () => {

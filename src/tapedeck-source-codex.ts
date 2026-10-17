@@ -9,11 +9,11 @@ import {
 	TextContent,
 	textOf,
 } from '#/src/tapedeck-json'
+import { tapeTitle, titleFields, userTexts } from '#/src/tapedeck-tape-title'
 import {
 	appendTurn,
 	type ImageSource,
 	jsonLines,
-	titleFromTurns,
 	toolResultFields,
 	type ToolResult,
 	type Transcript,
@@ -46,6 +46,8 @@ const CodexPayload = Schema.Struct({
 	type: Schema.optionalKey(Schema.String),
 	id: Schema.optionalKey(Schema.String),
 	cwd: Schema.optionalKey(Schema.String),
+	/** Set on subagent and review threads Codex starts from another thread. */
+	parent_thread_id: Schema.optionalKey(Schema.NullOr(Schema.String)),
 	model: Schema.optionalKey(Schema.String),
 	timestamp: Schema.optionalKey(Schema.String),
 	role: Schema.optionalKey(Schema.String),
@@ -325,7 +327,8 @@ const parse = (text: string): Result.Result<Transcript, TapedeckParseError> => {
 		model: lastDefined(contexts.map((line) => line.payload.model)),
 		cwd: meta.cwd ?? lastDefined(contexts.map((line) => line.payload.cwd)),
 		startedAt: meta.timestamp ?? lines[0]?.timestamp,
-		title: titleFromTurns(turns),
+		...titleFields(tapeTitle(undefined, userTexts(turns))),
+		subagent: meta.parent_thread_id !== undefined && meta.parent_thread_id !== null,
 		turns,
 	})
 }
