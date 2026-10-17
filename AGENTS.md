@@ -16,6 +16,11 @@ Each harness is a `TranscriptSource` (`src/tapedeck-transcript.ts`): `matchesFil
 - `effect-obsidian` is `@tyler.earth/effect-obsidian` on npm
 - Release artifacts at repo root: `main.js`, `manifest.json`, `styles.css`
 
+## UI copy
+
+- Setting descriptions, notices, and other UI text are one short sentence. Never put several sentences in a row.
+- Never suggest something happens automatically when it does not. Tapedeck never auto-imports; it only imports what the user picks.
+
 ## Effect
 
 - Latest Effect v4 rc. Installed modules we lean on: `Effect`, `Schema`, `Option`, `Result`, `Layer`, `Logger`.
