@@ -11,6 +11,11 @@ export const ShelfHarness = Schema.Literals(['auto', 'claude-code', 'codex', 'pi
 
 export type ShelfHarness = Schema.Schema.Type<typeof ShelfHarness>
 
+/** How often a shelf auto-imports. `off` (the default, and what older settings get) never runs. */
+export const AutoImportEvery = Schema.Literals(['off', '15m', 'hourly', 'daily'])
+
+export type AutoImportEvery = Schema.Schema.Type<typeof AutoImportEvery>
+
 /**
  * A tape shelf: a folder Tapedeck lists tapes from without asking for a path each time. `path` is
  * stored as typed, so `~` stays portable between machines and is expanded only when read.
@@ -20,6 +25,12 @@ export const TapeShelf = Schema.Struct({
 	label: Schema.optionalKey(Schema.String),
 	harness: ShelfHarness,
 	enabled: Schema.Boolean,
+	/** Auto-import schedule; missing means off. */
+	autoImport: Schema.optionalKey(AutoImportEvery),
+	/** When auto-import was turned on (epoch ms); only tapes modified after it are imported. */
+	autoImportSince: Schema.optionalKey(Schema.Number),
+	/** When auto-import last ran for this shelf (epoch ms). */
+	autoImportLastRun: Schema.optionalKey(Schema.Number),
 })
 
 export type TapeShelf = Schema.Schema.Type<typeof TapeShelf>
@@ -105,6 +116,18 @@ export const migratedDefaultShelves = (legacy: LegacySourceDirectories): Readonl
 		return configured === '' ? shelf : { ...shelf, path: configured }
 	})
 
+/** Every saved field of a shelf, with optional ones filled, for comparing shelves. */
+const shelfKey = (shelf: TapeShelf): string =>
+	JSON.stringify([
+		shelf.path,
+		shelf.label ?? '',
+		shelf.harness,
+		shelf.enabled,
+		shelf.autoImport ?? 'off',
+		shelf.autoImportSince ?? null,
+		shelf.autoImportLastRun ?? null,
+	])
+
 /** Structural equality, used to drop a shelf list that matches the defaults. */
 export const sameShelves = (
 	left: ReadonlyArray<TapeShelf>,
@@ -114,11 +137,5 @@ export const sameShelves = (
 	left.every((shelf, index) => {
 		const other = right[index]
 
-		return (
-			other !== undefined &&
-			shelf.path === other.path &&
-			(shelf.label ?? '') === (other.label ?? '') &&
-			shelf.harness === other.harness &&
-			shelf.enabled === other.enabled
-		)
+		return other !== undefined && shelfKey(shelf) === shelfKey(other)
 	})

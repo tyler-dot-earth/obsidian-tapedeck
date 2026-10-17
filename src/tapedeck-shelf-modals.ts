@@ -1,5 +1,6 @@
 import { type App, FuzzySuggestModal, Modal, Notice, Setting } from 'obsidian'
 
+import { autoImportText } from '#/src/tapedeck-auto-import'
 import { isShelfAvailable } from '#/src/tapedeck-session-files'
 import { ShelfHarness, shelfHarnessLabels, shelfName, type TapeShelf } from '#/src/tapedeck-shelves'
 import { sourceFor } from '#/src/tapedeck-sources'
@@ -8,9 +9,14 @@ import { sourceFor } from '#/src/tapedeck-sources'
 export const shelfEmoji = (shelf: TapeShelf): string =>
 	shelf.harness === 'auto' ? '📺' : sourceFor(shelf.harness).emoji
 
-/** One line about a shelf: harness, folder, and whether the folder is there. */
+/** One line about a shelf: harness, folder, schedule when on, and whether the folder is there. */
 export const shelfSummary = (shelf: TapeShelf): string => {
+	const schedule = autoImportText(shelf)
 	const parts = [shelfHarnessLabels[shelf.harness], shelf.path]
+
+	if (schedule !== undefined) {
+		parts.push(schedule)
+	}
 
 	return isShelfAvailable(shelf)
 		? parts.join(' · ')
@@ -97,8 +103,9 @@ export class ShelfEditModal extends Modal {
 			return
 		}
 
-		const label = this.draft.label?.trim() ?? ''
-		const shelf = { path, harness: this.draft.harness, enabled: this.draft.enabled }
+		const { label: draftLabel, ...rest } = this.draft
+		const label = draftLabel?.trim() ?? ''
+		const shelf = { ...rest, path }
 		this.close()
 		this.onSave(label === '' ? shelf : { ...shelf, label })
 	}

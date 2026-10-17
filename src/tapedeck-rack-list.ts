@@ -146,13 +146,16 @@ export const outcomeBadges: Record<RowOutcome['kind'], string> = {
 }
 
 /** "📼 Tapedeck: 3 new, 1 updated, 1 failed." for a batch import. */
-export const importSummary = (results: ReadonlyArray<TapeImportResult>): string => {
+export const importSummary = (
+	results: ReadonlyArray<TapeImportResult>,
+	prefix = '📼 Tapedeck',
+): string => {
 	const updated = results.filter((result) => result.ok && result.updated).length
 	const failed = results.filter((result) => !result.ok).length
 	const created = results.length - updated - failed
 	const failures = failed > 0 ? `, ${failed} failed` : ''
 
-	return `📼 Tapedeck: ${created} new, ${updated} updated${failures}.`
+	return `${prefix}: ${created} new, ${updated} updated${failures}.`
 }
 
 /**

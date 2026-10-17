@@ -9,6 +9,13 @@ import {
 import { Effect, Layer, Logger, type ManagedRuntime } from 'effect'
 import { Notice, Plugin } from 'obsidian'
 
+import {
+	AutoImportRunner,
+	autoImportTickMs,
+	isAutoImportCandidate,
+	isModifiedSince,
+	withLastRun,
+} from '#/src/tapedeck-auto-import'
 import { CodexThreadNames } from '#/src/tapedeck-codex-names'
 import { mapWithLimit } from '#/src/tapedeck-concurrency'
 import { tapedeckErrorMessage } from '#/src/tapedeck-errors'
@@ -19,6 +26,7 @@ import {
 	defaultTapedeckPluginSettings,
 	loadTapedeckPluginSettings,
 	resolveTapedeckSettings,
+	withTapeShelves,
 } from '#/src/tapedeck-plugin-settings'
 import type { TapePreview } from '#/src/tapedeck-preview'
 import { importSummary, type TapeImportResult } from '#/src/tapedeck-rack-list'
@@ -45,6 +53,16 @@ export default class TapedeckPlugin extends Plugin {
 		this.threadNames,
 	)
 
+	private readonly autoImport = new AutoImportRunner<TapeImportResult>({
+		shelves: (): ReadonlyArray<TapeShelf> => resolveTapedeckSettings(this.settings).tapeShelves,
+		runShelf: async (shelf): Promise<ReadonlyArray<TapeImportResult>> =>
+			this.autoImportShelf(shelf),
+		markRun: async (shelves, at): Promise<void> => this.markAutoImportRun(shelves, at),
+		report: (results): void => {
+			new Notice(importSummary(results, '⏰ Tapedeck auto-import'))
+		},
+	})
+
 	override async onload(): Promise<void> {
 		const runtime = makePluginRuntime(
 			Layer.mergeAll(
@@ -61,6 +79,51 @@ export default class TapedeckPlugin extends Plugin {
 		this.addSettingTab(new TapedeckSettingTab(this.app, this, this))
 		this.registerCommands()
 		this.registerTapeRack()
+		this.app.workspace.onLayoutReady(() => {
+			this.startAutoImport()
+		})
+	}
+
+	/**
+	 * Checks once a minute, while Obsidian is open, for shelves whose auto-import is due. The first
+	 * check runs at startup, so a run missed while Obsidian was closed catches up only if due.
+	 */
+	private startAutoImport(): void {
+		const tick = (): void => {
+			void this.autoImport.tick(Date.now()).catch(() => undefined)
+		}
+
+		tick()
+		this.registerInterval(window.setInterval(tick, autoImportTickMs))
+	}
+
+	/** New and changed sessions on a shelf modified after its auto-import was turned on. */
+	private async autoImportShelf(shelf: TapeShelf): Promise<ReadonlyArray<TapeImportResult>> {
+		const since = shelf.autoImportSince ?? Date.now()
+		const listed = await Effect.runPromise(listSessionFiles([shelf])).catch(() => [])
+		const files = listed.filter((file) => isModifiedSince(file.modifiedAt, since))
+
+		if (files.length === 0) {
+			return []
+		}
+
+		await this.tapeInfo.prepare(files).catch(() => undefined)
+		const notes = this.importer.importedNotes()
+
+		const picked = await mapWithLimit(files, importConcurrency, async (file) => {
+			const info = await this.tapeInfo.read(file).catch(() => undefined)
+
+			return isAutoImportCandidate(this.tapeInfo.row(file, info, notes), since) ? [file] : []
+		})
+
+		return mapWithLimit(picked.flat(), importConcurrency, async (file) => this.importOne(file))
+	}
+
+	private async markAutoImportRun(shelves: ReadonlyArray<TapeShelf>, at: number): Promise<void> {
+		const current = resolveTapedeckSettings(this.settings).tapeShelves
+		const stamped = shelves.reduce((list, shelf) => withLastRun(list, shelf, at), current)
+		this.settings = withTapeShelves(this.settings, stamped)
+		await this.saveTapedeckPluginSettings()
 	}
 
 	private registerTapeRack(): void {

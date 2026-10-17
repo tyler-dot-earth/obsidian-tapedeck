@@ -7,6 +7,7 @@ import {
 	type SettingDefinitionItem,
 } from 'obsidian'
 
+import { autoImportLabels, autoImportOf, withAutoImport } from '#/src/tapedeck-auto-import'
 import {
 	type TapedeckPluginSettingsHost,
 	isTapedeckSettingKey,
@@ -14,8 +15,8 @@ import {
 	withTapedeckSetting,
 	withTapeShelves,
 } from '#/src/tapedeck-plugin-settings'
-import { ShelfEditModal, shelfSummary } from '#/src/tapedeck-shelf-modals'
-import { shelfName, type TapeShelf } from '#/src/tapedeck-shelves'
+import { ShelfEditModal, shelfEmoji, shelfSummary } from '#/src/tapedeck-shelf-modals'
+import { AutoImportEvery, shelfName, type TapeShelf } from '#/src/tapedeck-shelves'
 
 /** 🏷️ Notes: how a transcript lands in the vault. */
 const noteSettings: SettingDefinition[] = [
@@ -90,6 +91,19 @@ const redactionSettings: SettingDefinition[] = [
 	},
 ]
 
+/** One sentence on what a shelf's auto-import does, or that it is off. */
+const autoImportDesc = (shelf: TapeShelf): string => {
+	if (autoImportOf(shelf) === 'off' || shelf.autoImportSince === undefined) {
+		return 'Off: import from this shelf yourself.'
+	}
+
+	const since = new Date(shelf.autoImportSince).toLocaleString()
+
+	return shelf.enabled
+		? `While Obsidian is open, imports new and changed tapes modified after ${since}.`
+		: 'Paused while the shelf is turned off.'
+}
+
 /** Plugin settings tab: where the tapes live, how notes come out, what gets blurred. */
 export class TapedeckSettingTab extends PluginSettingTab {
 	private readonly settingsHost: TapedeckPluginSettingsHost
@@ -102,6 +116,11 @@ export class TapedeckSettingTab extends PluginSettingTab {
 	override getSettingDefinitions(): SettingDefinitionItem[] {
 		return [
 			...this.shelfDefinitions(),
+			{
+				type: 'group',
+				heading: '⏰ Auto-import',
+				items: this.shelves().map((shelf, index) => this.autoImportRow(shelf, index)),
+			},
 			{ type: 'group', heading: '🏷️ Notes', items: noteSettings },
 			{ type: 'group', heading: '⏸️ Freeze-frames', items: freezeFrameSettings },
 			{ type: 'group', heading: '✂️ Redaction', items: redactionSettings },
@@ -176,6 +195,31 @@ export class TapedeckSettingTab extends PluginSettingTab {
 							.setValue(shelf.enabled)
 							.onChange((enabled) => {
 								this.replaceShelf(index, { ...shelf, enabled })
+							}),
+					)
+			},
+		}
+	}
+
+	private autoImportRow(shelf: TapeShelf, index: number): SettingDefinition {
+		return {
+			name: shelfName(shelf),
+			desc: autoImportDesc(shelf),
+			aliases: ['auto-import', 'schedule', shelf.path],
+			render: (setting) => {
+				setting
+					.setName(`${shelfEmoji(shelf)} ${shelfName(shelf)}`)
+					.setDesc(autoImportDesc(shelf))
+					.addDropdown((dropdown) =>
+						dropdown
+							.addOptions(autoImportLabels)
+							.setValue(autoImportOf(shelf))
+							.onChange((value) => {
+								const every = AutoImportEvery.literals.find((literal) => literal === value)
+
+								if (every !== undefined) {
+									this.replaceShelf(index, withAutoImport(shelf, every, Date.now()))
+								}
 							}),
 					)
 			},
