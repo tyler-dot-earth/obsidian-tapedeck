@@ -70,7 +70,7 @@ export default class TapedeckPlugin extends Plugin {
 					loadData: () => this.loadData(),
 					saveData: (data) => this.saveData(data),
 				}),
-				Logger.layer([Logger.consoleJson]),
+				Logger.layer([Logger.consolePretty({ mode: 'browser' })]),
 			),
 		)
 
