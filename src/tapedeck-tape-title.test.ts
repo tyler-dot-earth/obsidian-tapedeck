@@ -60,8 +60,8 @@ describe('readPrompt', () => {
 
 	it('keeps pasted text and shell input', () => {
 		assert.strictEqual(
-			prompt('<pasted_content id="p1">Sort the demo list by date</pasted_content>'),
-			'Sort the demo list by date',
+			prompt('<pasted_content id="p1">Sort the mixtape list by date</pasted_content>'),
+			'Sort the mixtape list by date',
 		)
 
 		assert.strictEqual(
@@ -74,7 +74,7 @@ describe('readPrompt', () => {
 
 	it('drops Codex context blocks and keeps what follows', () => {
 		assert.deepStrictEqual(
-			readPrompt('<environment_context><cwd>/home/sample/demo</cwd></environment_context>'),
+			readPrompt('<environment_context><cwd>/home/sample/mixtape</cwd></environment_context>'),
 			{ kind: 'skip' },
 		)
 
@@ -105,7 +105,7 @@ describe('readPrompt', () => {
 
 	it('skips AGENTS.md injections and the Codex history preamble', () => {
 		assert.deepStrictEqual(
-			readPrompt('# AGENTS.md instructions for /home/sample/demo\n\nUse tabs.'),
+			readPrompt('# AGENTS.md instructions for /home/sample/mixtape\n\nUse tabs.'),
 			{
 				kind: 'skip',
 			},
@@ -178,9 +178,9 @@ describe('harnessName', () => {
 	})
 
 	it('reads the latest Pi session name, where an empty name clears it', () => {
-		const named = json({ type: 'session_info', id: 'a', name: 'Pi demo' })
+		const named = json({ type: 'session_info', id: 'a', name: 'Pi mixtape' })
 		const cleared = json({ type: 'session_info', id: 'b', name: '' })
-		assert.strictEqual(harnessName('pi', [named]), 'Pi demo')
+		assert.strictEqual(harnessName('pi', [named]), 'Pi mixtape')
 		assert.isUndefined(harnessName('pi', [named, cleared]))
 	})
 

@@ -31,7 +31,7 @@ const claudeUser = (content: string, uuid: string, sessionId = ids.named): Schem
 	type: 'user',
 	sessionId,
 	uuid,
-	cwd: '/home/sample/projects/demo',
+	cwd: '/home/sample/projects/mixtape',
 	timestamp: '2026-01-15T09:00:01.000Z',
 	message: { role: 'user', content },
 })
@@ -55,14 +55,14 @@ const system = (sessionId: string): Schema.Json => ({
 	type: 'system',
 	subtype: 'informational',
 	sessionId,
-	cwd: '/home/sample/projects/demo',
+	cwd: '/home/sample/projects/mixtape',
 	content: 'Session started',
 })
 
 const codexMeta = (id: string, parent: string | null): Schema.Json => ({
 	timestamp: '2026-03-01T08:00:00.000Z',
 	type: 'session_meta',
-	payload: { id, cwd: '/home/sample/projects/demo', parent_thread_id: parent },
+	payload: { id, cwd: '/home/sample/projects/mixtape', parent_thread_id: parent },
 })
 
 const codexUser = (text: string): Schema.Json => ({
@@ -77,7 +77,7 @@ const write = (path: string, text: string): void => {
 
 beforeAll(() => {
 	home = mkdtempSync(join(tmpdir(), 'tapedeck-titles-'))
-	const claude = join(home, '.claude', 'projects', '-home-sample--work-demo')
+	const claude = join(home, '.claude', 'projects', '-home-sample--work-mixtape')
 	write(join(claude, `${ids.named}.jsonl`), namedClaudeTape())
 	write(join(claude, `${ids.empty}.jsonl`), lines(system(ids.empty), { type: 'mode', mode: 'x' }))
 
@@ -98,7 +98,7 @@ beforeAll(() => {
 		join(day, `rollout-2026-03-01T08-00-00-${ids.codex}.jsonl`),
 		lines(
 			codexMeta(ids.codex, null),
-			codexUser('# AGENTS.md instructions for /home/sample/projects/demo\n\nUse tabs.'),
+			codexUser('# AGENTS.md instructions for /home/sample/projects/mixtape\n\nUse tabs.'),
 			codexUser('<environment_context><cwd>/home/sample</cwd></environment_context>'),
 			codexUser('Add a dark mode toggle'),
 		),
@@ -126,7 +126,7 @@ beforeAll(() => {
 			'.pi',
 			'agent',
 			'sessions',
-			'--home-sample-projects-demo--',
+			'--home-sample-projects-mixtape--',
 			`2026-04-01T10-00-00-000Z_${ids.pi}.jsonl`,
 		),
 		lines(
@@ -135,7 +135,7 @@ beforeAll(() => {
 				version: 3,
 				id: ids.pi,
 				timestamp: '2026-04-01T10:00:00.000Z',
-				cwd: '/home/sample/projects/demo',
+				cwd: '/home/sample/projects/mixtape',
 			},
 			{
 				type: 'message',
@@ -184,7 +184,7 @@ describe('tape titles from files', () => {
 		const info = await new TapeInfoCache().read(await tape(ids.empty))
 		assert.strictEqual(info.kind, 'empty')
 		assert.strictEqual(info.title, 'empty tape')
-		assert.strictEqual(info.cwd, '/home/sample/projects/demo')
+		assert.strictEqual(info.cwd, '/home/sample/projects/mixtape')
 	})
 
 	it('names a tape that only ran a command after the command', async () => {
@@ -218,7 +218,7 @@ describe('tape titles from files', () => {
 		assert.isFalse(listed.has(ids.codexChild))
 		assert.isFalse(listed.has(ids.empty))
 		assert.isTrue(listed.has(ids.clear))
-		assert.strictEqual(rows.find((row) => row.sessionId === ids.empty)?.project, 'demo')
+		assert.strictEqual(rows.find((row) => row.sessionId === ids.empty)?.project, 'mixtape')
 	})
 
 	it('reads the Pi session name', async () => {

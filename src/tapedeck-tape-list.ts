@@ -137,7 +137,7 @@ export const projectFromFolder = (folder: string, home: string): string | undefi
 	return rest === '' ? undefined : rest
 }
 
-/** `monorepo · motion-design` for a worktree session, the project alone otherwise. */
+/** `mixtape · side-b` for a worktree session, the project alone otherwise. */
 export const projectText = (row: TapeRow): string | undefined => {
 	if (row.project === undefined) {
 		return undefined
@@ -158,7 +158,7 @@ export const tapeSearchText = (row: TapeRow): string =>
 
 /**
  * Listed rows matching every word of the query, in their original (newest first) order. Words match
- * anywhere, case-insensitively, so `demo 2026-01` finds January tapes of the demo project.
+ * anywhere, case-insensitively, so `mixtape 2026-01` finds January tapes of the mixtape project.
  */
 export const filterTapes = (rows: ReadonlyArray<TapeRow>, query: string): Array<TapeRow> =>
 	searchTapes(rows.filter(isListed), query)

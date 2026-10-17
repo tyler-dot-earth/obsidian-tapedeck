@@ -23,7 +23,7 @@ const row = (path: string, overrides: Partial<TapeRow>): TapeRow => ({
 	agent: 'Claude Code',
 	shelf: 'Claude Code',
 	modifiedAt: new Date('2026-01-15T09:00:00.000Z'),
-	project: 'demo',
+	project: 'mixtape',
 	worktree: undefined,
 	title: 'Make the greeting say hello world',
 	kind: 'session',
@@ -34,9 +34,9 @@ const row = (path: string, overrides: Partial<TapeRow>): TapeRow => ({
 })
 
 const rows: ReadonlyArray<TapeRow> = [
-	row('a', { project: 'billing', shelf: 'Work laptop', state: 'changed', notePath: 'T/a.md' }),
-	row('b', { project: 'demo' }),
-	row('c', { project: 'billing', state: 'imported', notePath: 'T/c.md' }),
+	row('a', { project: 'boombox', shelf: 'Work laptop', state: 'changed', notePath: 'T/a.md' }),
+	row('b', { project: 'mixtape' }),
+	row('c', { project: 'boombox', state: 'imported', notePath: 'T/c.md' }),
 	row('d', { project: undefined, state: 'unknown' }),
 ]
 
@@ -46,7 +46,7 @@ describe('rack filtering and grouping', () => {
 	it('hides tapes already in the vault on request', () => {
 		assert.deepStrictEqual(paths(rackTapes(rows, '', false)), ['a', 'b', 'c', 'd'])
 		assert.deepStrictEqual(paths(rackTapes(rows, '', true)), ['b', 'd'])
-		assert.deepStrictEqual(paths(rackTapes(rows, 'billing', true)), [])
+		assert.deepStrictEqual(paths(rackTapes(rows, 'boombox', true)), [])
 		assert.deepStrictEqual(paths(rackTapes(rows, 'work', false)), ['a'])
 	})
 
@@ -59,8 +59,8 @@ describe('rack filtering and grouping', () => {
 		assert.deepStrictEqual(
 			groups.map((group) => [group.label, paths(group.rows)]),
 			[
-				['billing', ['a', 'c']],
-				['demo', ['b']],
+				['boombox', ['a', 'c']],
+				['mixtape', ['b']],
 				['No project', ['d']],
 			],
 		)
@@ -81,11 +81,11 @@ describe('rack filtering and grouping', () => {
 	it('flattens groups into headings and rows, skipping collapsed ones', () => {
 		const groups = groupTapes(rows, 'project')
 
-		const lines = rackItems(groups, 'project', new Set(['billing'])).map((item) =>
+		const lines = rackItems(groups, 'project', new Set(['boombox'])).map((item) =>
 			item.kind === 'group' ? `# ${item.group.label}` : item.row.path,
 		)
 
-		assert.deepStrictEqual(lines, ['# billing', '# demo', 'b', '# No project', 'd'])
+		assert.deepStrictEqual(lines, ['# boombox', '# mixtape', 'b', '# No project', 'd'])
 		assert.strictEqual(rackItems(groupTapes(rows, 'none'), 'none', new Set()).length, 4)
 	})
 })
@@ -97,13 +97,13 @@ describe('folding all groups', () => {
 
 	it('folds every group, then unfolds them', () => {
 		const folded = toggleAllFolds(groups, new Set())
-		assert.deepStrictEqual(keys(folded), ['billing', 'demo', ''])
+		assert.deepStrictEqual(keys(folded), ['boombox', 'mixtape', ''])
 		assert.isTrue(allFolded(groups, folded))
 		assert.deepStrictEqual(keys(toggleAllFolds(groups, folded)), [])
 	})
 
 	it('folds the rest when only some groups are folded', () => {
-		const some = new Set(['demo'])
+		const some = new Set(['mixtape'])
 		assert.isFalse(allFolded(groups, some))
 		assert.isTrue(allFolded(groups, toggleAllFolds(groups, some)))
 	})

@@ -18,12 +18,12 @@ Do not symlink the whole plugin repo into `.obsidian/plugins`.
 
 Run **⏏️ Import session file** and paste the full path to one of these:
 
-| File                                                      | Source                   |
-| --------------------------------------------------------- | ------------------------ |
-| `fixtures/claude-code/-home-sample-projects-demo/*.jsonl` | Claude Code              |
-| `fixtures/codex/2026/01/15/rollout-*.jsonl`               | Codex CLI                |
-| `fixtures/pi/--home-sample-projects-demo--/*.jsonl`       | Pi                       |
-| `fixtures/images/*.jsonl`                                 | Each source, with images |
+| File                                                         | Source                   |
+| ------------------------------------------------------------ | ------------------------ |
+| `fixtures/claude-code/-home-sample-projects-mixtape/*.jsonl` | Claude Code              |
+| `fixtures/codex/2026/01/15/rollout-*.jsonl`                  | Codex CLI                |
+| `fixtures/pi/--home-sample-projects-mixtape--/*.jsonl`       | Pi                       |
+| `fixtures/images/*.jsonl`                                    | Each source, with images |
 
 To try **📼 Import from tape shelves** against them, add a tape shelf for `fixtures/claude-code`, `fixtures/codex`, or `fixtures/pi` (full paths), or an Auto-detect shelf for `fixtures/images`.
 

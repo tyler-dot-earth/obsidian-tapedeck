@@ -26,7 +26,7 @@ const row = (path: string, overrides: Partial<TapeRow>): TapeRow => ({
 	agent: 'Claude Code',
 	shelf: 'Claude Code',
 	modifiedAt: new Date('2026-01-15T09:00:00.000Z'),
-	project: 'demo',
+	project: 'mixtape',
 	worktree: undefined,
 	title: 'Make the greeting say hello world',
 	kind: 'session',
@@ -42,7 +42,7 @@ const rows: ReadonlyArray<TapeRow> = [
 		harness: 'codex',
 		agent: 'Codex CLI',
 		shelf: 'Work laptop',
-		project: 'billing-api',
+		project: 'boombox-api',
 		title: 'Fix the flaky invoice test',
 		modifiedAt: new Date('2026-02-03T14:30:00.000Z'),
 	}),
@@ -51,9 +51,9 @@ const rows: ReadonlyArray<TapeRow> = [
 
 describe('project names', () => {
 	it('takes the last folder of a cwd', () => {
-		assert.strictEqual(projectFromCwd('/home/sample/projects/demo'), 'demo')
-		assert.strictEqual(projectFromCwd('/home/sample/projects/demo/'), 'demo')
-		assert.strictEqual(projectFromCwd('C:\\Users\\sample\\code\\my-app'), 'my-app')
+		assert.strictEqual(projectFromCwd('/home/sample/projects/mixtape'), 'mixtape')
+		assert.strictEqual(projectFromCwd('/home/sample/projects/mixtape/'), 'mixtape')
+		assert.strictEqual(projectFromCwd('C:\\Users\\sample\\code\\rec-light'), 'rec-light')
 		assert.isUndefined(projectFromCwd('C:\\'))
 		assert.isUndefined(projectFromCwd('/'))
 		assert.isUndefined(projectFromCwd(undefined))
@@ -61,12 +61,12 @@ describe('project names', () => {
 
 	it('strips the encoded home folder from Claude Code and Pi folder names', () => {
 		assert.strictEqual(
-			projectFromFolder('-home-sample-projects-demo', '/home/sample'),
-			'projects-demo',
+			projectFromFolder('-home-sample-projects-mixtape', '/home/sample'),
+			'projects-mixtape',
 		)
 		assert.strictEqual(
-			projectFromFolder('--home-sample-projects-demo--', '/home/sample'),
-			'projects-demo',
+			projectFromFolder('--home-sample-projects-mixtape--', '/home/sample'),
+			'projects-mixtape',
 		)
 		assert.strictEqual(
 			projectFromFolder('C--Users-sample-code-app', 'C:\\Users\\sample'),
@@ -94,19 +94,19 @@ describe('filterTapes', () => {
 		const paths = (query: string): Array<string> =>
 			filterTapes(rows, query).map((tape) => tape.path)
 
-		assert.deepStrictEqual(paths('BILLING'), ['b.jsonl'])
+		assert.deepStrictEqual(paths('BOOMBOX'), ['b.jsonl'])
 		assert.deepStrictEqual(paths('flaky invoice'), ['b.jsonl'])
 		assert.deepStrictEqual(paths('work laptop'), ['b.jsonl'])
 		assert.deepStrictEqual(paths('codex'), ['b.jsonl'])
 		assert.deepStrictEqual(paths('2026-01-15'), ['a.jsonl', 'c.jsonl'])
-		assert.deepStrictEqual(paths('demo greeting'), ['a.jsonl'])
-		assert.deepStrictEqual(paths('demo invoice'), [])
+		assert.deepStrictEqual(paths('mixtape greeting'), ['a.jsonl'])
+		assert.deepStrictEqual(paths('mixtape invoice'), [])
 	})
 
 	it('labels rows with emoji, date, project, prompt, and an imported mark', () => {
 		assert.strictEqual(
 			tapeLabel(rows[0] ?? row('x', {})),
-			'🟠 2026-01-15 09:00 · demo · Make the greeting say hello world',
+			'🟠 2026-01-15 09:00 · mixtape · Make the greeting say hello world',
 		)
 		assert.strictEqual(
 			tapeLabel(row('d', { project: undefined, title: undefined, state: 'imported' })),
@@ -123,7 +123,7 @@ describe('selection', () => {
 	})
 
 	it('selects and clears only the shown rows', () => {
-		const shown = filterTapes(rows, 'demo')
+		const shown = filterTapes(rows, 'mixtape')
 		const kept = selectShown(new Set(['b.jsonl']), shown)
 		assert.deepStrictEqual(kept, new Set(['a.jsonl', 'b.jsonl']))
 		assert.isTrue(allShownSelected(kept, shown))

@@ -13,7 +13,7 @@ export interface ProjectPlace {
 const segments = (path: string): Array<string> =>
 	path.split(/[/\\]+/).filter((part) => part !== '' && !/^[A-Za-z]:$/.test(part))
 
-/** Last folder of a path as a project, e.g. `/home/me/code/app` is `app`. */
+/** Last folder of a path as a project, e.g. `/home/me/code/mixtape` is `mixtape`. */
 export const placeFromFolder = (path: string): ProjectPlace | undefined => {
 	const last = segments(path).at(-1)
 
@@ -96,7 +96,7 @@ export const placeFromGitFile = (text: string, worktreeRoot: string): ProjectPla
 
 /**
  * Worktree guess from a Claude Code or Pi encoded folder name, after the home folder is stripped
- * (`herdr-worktrees-app-fix-login`): the part after `worktrees-` is `<repo>-<worktree>`. The
+ * (`herdr-worktrees-mixtape-side-b`): the part after `worktrees-` is `<repo>-<worktree>`. The
  * encoding loses where names break, so the repo is taken to be one word.
  */
 export const placeFromEncodedName = (name: string): ProjectPlace | undefined => {
@@ -198,10 +198,10 @@ const tryCandidates = async (
 }
 
 /**
- * Walks real folders to undo a lossy Claude Code or Pi folder name such as `-home-me--work-my-app`
- * or `--home-me-.work-my-app--`, trying longer folder names first and backing off when a branch
- * dead-ends. Returns the deepest real folder reached and the encoded tail left over (a worktree
- * that was removed, say). At most 200 folders are listed.
+ * Walks real folders to undo a lossy Claude Code or Pi folder name such as
+ * `-home-me--work-rec-light` or `--home-me-.work-rec-light--`, trying longer folder names first and
+ * backing off when a branch dead-ends. Returns the deepest real folder reached and the encoded tail
+ * left over (a worktree that was removed, say). At most 200 folders are listed.
  */
 export const resolveEncodedFolder = async (
 	encoded: string,
@@ -214,6 +214,6 @@ export const resolveEncodedFolder = async (
 export const matchedPath = (match: EncodedMatch): string =>
 	match.rest === '' ? match.path : joinPath(match.path, match.rest)
 
-/** `app · fix-login` for a worktree, or just the project. */
+/** `mixtape · side-b` for a worktree, or just the project. */
 export const placeLabel = (place: ProjectPlace): string =>
 	place.worktree === undefined ? place.project : `${place.project} · ${place.worktree}`

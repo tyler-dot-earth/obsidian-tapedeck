@@ -1,4 +1,4 @@
-{"type": "session", "version": 3, "id": "33333333-4444-4555-8666-777777777777", "timestamp": "2026-01-15T11:00:00.000Z", "cwd": "/home/sample/projects/demo"}
+{"type": "session", "version": 3, "id": "33333333-4444-4555-8666-777777777777", "timestamp": "2026-01-15T11:00:00.000Z", "cwd": "/home/sample/projects/mixtape"}
 {"type": "model_change", "id": "m0000001", "parentId": null, "timestamp": "2026-01-15T11:00:00.100Z", "provider": "anthropic", "modelId": "claude-sonnet-4-5"}
 {"type": "message", "id": "a0000001", "parentId": "m0000001", "timestamp": "2026-01-15T11:00:01.000Z", "message": {"role": "user", "content": "Rename greet to welcome", "timestamp": 1}}
 {"type": "message", "id": "a0000002", "parentId": "a0000001", "timestamp": "2026-01-15T11:00:02.000Z", "message": {"role": "assistant", "content": [{"type": "text", "text": "Abandoned branch answer"}], "provider": "anthropic", "model": "claude-sonnet-4-5", "usage": {}, "stopReason": "stop", "timestamp": 2}}

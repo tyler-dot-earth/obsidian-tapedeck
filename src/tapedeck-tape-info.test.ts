@@ -73,7 +73,7 @@ describe('tape rows', () => {
 		const claude = await byHarness('claude-code')
 		const codex = await byHarness('codex')
 		const row = tapeRow(claude, undefined, nothingImported, { home })
-		assert.strictEqual(row.project, 'home-sample-projects-demo')
+		assert.strictEqual(row.project, 'home-sample-projects-mixtape')
 		assert.isUndefined(row.title)
 		assert.isUndefined(tapeRow(codex, undefined, nothingImported, { home }).project)
 	})
@@ -83,7 +83,7 @@ describe('tape rows', () => {
 		const pi = await byHarness('pi')
 		const info = await cache.read(pi)
 		const row = tapeRow(pi, info, nothingImported, { home })
-		assert.strictEqual(row.project, 'demo')
+		assert.strictEqual(row.project, 'mixtape')
 		assert.isString(row.title)
 		assert.notStrictEqual(row.title, 'unreadable tape')
 		assert.strictEqual(info.sessionId, '33333333-4444-4555-8666-777777777777')
@@ -103,12 +103,12 @@ describe('tape rows', () => {
 
 		const lookup = (harness: string, sessionId: string): ImportedNote | undefined =>
 			harness === 'claude-code' && sessionId === '11111111-2222-4333-8444-555555555555'
-				? { path: 'Transcripts/demo.md', importedAt }
+				? { path: 'Transcripts/mixtape.md', importedAt }
 				: undefined
 
 		const row = tapeRow(claude, info, lookup, { home })
 		assert.strictEqual(row.state, 'imported')
-		assert.strictEqual(row.notePath, 'Transcripts/demo.md')
+		assert.strictEqual(row.notePath, 'Transcripts/mixtape.md')
 		assert.strictEqual(tapeRow(claude, undefined, lookup, { home }).state, 'imported')
 	})
 

@@ -15,14 +15,14 @@ Importing a session that already has a note updates that note. It finds it by `s
 
 ## Tape picker
 
-After you pick a shelf, the tape picker lists **every** tape on it, newest first (by when the file last changed). Each row shows the agent emoji, date and time, project, and title, for example `🟠 2026-01-15 09:00 · demo · Make the greeting say hello world`. Tapes that already have a note are marked `⏪ in vault`, or `⏩ changed since import` when the session file has changed since the note was written; importing them again updates that note.
+After you pick a shelf, the tape picker lists **every** tape on it, newest first (by when the file last changed). Each row shows the agent emoji, date and time, project, and title, for example `🟠 2026-01-15 09:00 · mixtape · Make the greeting say hello world`. Tapes that already have a note are marked `⏪ in vault`, or `⏩ changed since import` when the session file has changed since the note was written; importing them again updates that note.
 
-- **Search** matches every word you type against the agent, shelf, project, title, and date, so `demo 2026-01` finds January tapes from the demo project.
+- **Search** matches every word you type against the agent, shelf, project, title, and date, so `mixtape 2026-01` finds January tapes from the mixtape project.
 - **Nothing is selected** when the picker opens. Click rows or use the keyboard to tick them. **Select all N** and **Select none** act on the rows your search currently shows; ticks outside the search are kept and counted as hidden.
 - **Keyboard**: ↑/↓ move the highlight (and focus the list), Space ticks the highlighted row, Enter imports what is ticked, typing jumps back to the search field, Esc closes.
 - **Import N tapes** imports the ticked tapes, four at a time. A single tape opens its note when done.
 
-The project comes from the session's working directory. Until a tape's first lines are read, Claude Code and Pi rows show a guess from their project folder name (with your home folder stripped, e.g. `code-my-app`); Codex rows show `—`.
+The project comes from the session's working directory. Until a tape's first lines are read, Claude Code and Pi rows show a guess from their project folder name (with your home folder stripped, e.g. `code-rec-light`); Codex rows show `—`.
 
 Rows appear straight away and titles fill in as they are read. Tapedeck reads only the first 64 KB of each tape (1 MB if that has no prompt) plus the last 64 KB, eight tapes at a time, newest first, and remembers what it read until the file changes, so reopening the picker is instant. Up to 300 matching rows are drawn at once; search still covers every tape.
 
@@ -43,7 +43,7 @@ Badges follow the vault as notes are added, renamed, or deleted. The rack shares
 
 ## Projects and worktrees
 
-Sessions are grouped by the repo they ran in. A session in a git worktree goes under its main repo with the worktree after it, like `monorepo · motion-design`. Tapedeck finds the main repo from the worktree's `.git` file (`gitdir: <repo>/.git/worktrees/<name>`), or, when the worktree is gone, from common layouts: `…/worktrees/<repo>/<name>`, `<repo>/.worktrees/<name>`, and `<repo>-worktrees/<name>`. Before a tape is read, the project comes from its folder name, which Claude Code and Pi encode lossily (`/` and `.` become `-`); Tapedeck matches those names against folders that exist under your home folder, so `-home-me-my-app` resolves to `~/my-app` rather than `~/my/app`.
+Sessions are grouped by the repo they ran in. A session in a git worktree goes under its main repo with the worktree after it, like `mixtape · side-b`. Tapedeck finds the main repo from the worktree's `.git` file (`gitdir: <repo>/.git/worktrees/<name>`), or, when the worktree is gone, from common layouts: `…/worktrees/<repo>/<name>`, `<repo>/.worktrees/<name>`, and `<repo>-worktrees/<name>`. Before a tape is read, the project comes from its folder name, which Claude Code and Pi encode lossily (`/` and `.` become `-`); Tapedeck matches those names against folders that exist under your home folder, so `-home-me-rec-light` resolves to `~/rec-light` rather than `~/rec/light`.
 
 ## Auto-import
 
@@ -113,8 +113,8 @@ harness: claude-code
 model: 'claude-sonnet-4-5'
 session_id: '11111111-2222-4333-8444-555555555555'
 machine: 'my-laptop'
-cwd: '~/projects/demo'
-resume: 'cd "~/projects/demo" && claude --resume 11111111-…'
+cwd: '~/projects/mixtape'
+resume: 'cd "~/projects/mixtape" && claude --resume 11111111-…'
 date: 2026-01-15T09:00:01
 created: 2026-02-01T12:00:00
 project:

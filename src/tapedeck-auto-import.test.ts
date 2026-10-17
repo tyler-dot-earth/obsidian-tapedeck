@@ -34,7 +34,7 @@ const row = (overrides: Partial<TapeRow>): TapeRow => ({
 	agent: 'Pi',
 	shelf: 'Pi',
 	modifiedAt: new Date(enabledAt + minute),
-	project: 'demo',
+	project: 'mixtape',
 	worktree: undefined,
 	title: 'Say hello',
 	kind: 'session',

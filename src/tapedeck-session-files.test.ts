@@ -14,10 +14,10 @@ let home = ''
 
 const fixtureFiles = {
 	claude:
-		'fixtures/claude-code/-home-sample-projects-demo/11111111-2222-4333-8444-555555555555.jsonl',
+		'fixtures/claude-code/-home-sample-projects-mixtape/11111111-2222-4333-8444-555555555555.jsonl',
 	codex:
 		'fixtures/codex/2026/01/15/rollout-2026-01-15T10-00-00-019a0000-aaaa-7bbb-8ccc-dddddddddddd.jsonl',
-	pi: 'fixtures/pi/--home-sample-projects-demo--/2026-01-15T11-00-00-000Z_33333333-4444-4555-8666-777777777777.jsonl',
+	pi: 'fixtures/pi/--home-sample-projects-mixtape--/2026-01-15T11-00-00-000Z_33333333-4444-4555-8666-777777777777.jsonl',
 }
 
 const shelf = (path: string, harness: TapeShelf['harness']): TapeShelf => ({
@@ -42,11 +42,11 @@ beforeAll(() => {
 	cpSync('fixtures/pi', join(home, '.pi', 'agent', 'sessions'), { recursive: true })
 
 	const loose = join(home, 'exports')
-	mkdirSync(join(loose, 'demo', 'abc', 'subagents'), { recursive: true })
+	mkdirSync(join(loose, 'mixtape', 'abc', 'subagents'), { recursive: true })
 	cpSync(fixtureFiles.claude, join(loose, 'claude.jsonl'))
 	cpSync(fixtureFiles.codex, join(loose, 'codex.jsonl'))
 	cpSync(fixtureFiles.pi, join(loose, 'pi.jsonl'))
-	cpSync(fixtureFiles.claude, join(loose, 'demo', 'abc', 'subagents', 'agent.jsonl'))
+	cpSync(fixtureFiles.claude, join(loose, 'mixtape', 'abc', 'subagents', 'agent.jsonl'))
 	writeFileSync(join(loose, 'notes.jsonl'), '{"hello":"world"}\n')
 })
 

@@ -21,7 +21,7 @@ const transcript: Transcript = {
 	model: undefined,
 	cwd: undefined,
 	startedAt: undefined,
-	title: 'Demo',
+	title: 'Side A',
 	titleSource: 'prompt',
 	subagent: false,
 	turns: Array.from({ length: 10 }, (_, index) => turn(index)),
@@ -34,12 +34,22 @@ describe('tape preview', () => {
 	})
 
 	it('drops frontmatter from the rendered note', () => {
-		assert.strictEqual(stripFrontmatter('---\ntype: transcript\n---\n\n# 📼 Demo\n'), '# 📼 Demo\n')
+		assert.strictEqual(
+			stripFrontmatter('---\ntype: transcript\n---\n\n# 📼 Side A\n'),
+			'# 📼 Side A\n',
+		)
 		assert.strictEqual(stripFrontmatter('# No frontmatter'), '# No frontmatter')
 	})
 
 	it('counts turns, marking a partial read', () => {
-		const preview = { title: 'Demo', startedAt: undefined, turns: 12, partial: false, markdown: '' }
+		const preview = {
+			title: 'Side A',
+			startedAt: undefined,
+			turns: 12,
+			partial: false,
+			markdown: '',
+		}
+
 		assert.strictEqual(turnCount(preview), '12 turns')
 		assert.strictEqual(turnCount({ ...preview, turns: 40, partial: true }), '40+ turns')
 		assert.strictEqual(turnCount({ ...preview, turns: 1 }), '1 turn')

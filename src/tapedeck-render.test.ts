@@ -9,7 +9,7 @@ import { claudeCodeSource } from '#/src/tapedeck-source-claude-code'
 const transcript = Result.getOrThrow(
 	claudeCodeSource.parse(
 		readFileSync(
-			'fixtures/claude-code/-home-sample-projects-demo/11111111-2222-4333-8444-555555555555.jsonl',
+			'fixtures/claude-code/-home-sample-projects-mixtape/11111111-2222-4333-8444-555555555555.jsonl',
 			'utf8',
 		),
 	),
@@ -42,8 +42,8 @@ describe('renderTranscriptNote', () => {
 				'model: "claude-sonnet-4-5"',
 				'session_id: "11111111-2222-4333-8444-555555555555"',
 				'machine: "sample-host"',
-				'cwd: "~/projects/demo"',
-				'resume: "cd \\"~/projects/demo\\" && claude --resume 11111111-2222-4333-8444-555555555555"',
+				'cwd: "~/projects/mixtape"',
+				'resume: "cd \\"~/projects/mixtape\\" && claude --resume 11111111-2222-4333-8444-555555555555"',
 				'date: 2026-01-15T09:00:01',
 				'created: 2026-02-01T12:00:00',
 				'project:',
@@ -101,12 +101,12 @@ describe('renderTranscriptNote', () => {
 	it('keeps created and project from an earlier import', () => {
 		const again = renderTranscriptNote(transcript, {
 			...options,
-			previous: { created: '2026-01-20T08:00:00', project: 'demo' },
+			previous: { created: '2026-01-20T08:00:00', project: 'mixtape' },
 		})
 
 		assert.include(
 			again,
-			'created: 2026-01-20T08:00:00\nupdated: 2026-02-01T12:00:00\nproject: "demo"',
+			'created: 2026-01-20T08:00:00\nupdated: 2026-02-01T12:00:00\nproject: "mixtape"',
 		)
 	})
 

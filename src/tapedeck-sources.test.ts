@@ -11,10 +11,10 @@ import type { ToolBlock, Transcript, TranscriptSource } from '#/src/tapedeck-tra
 
 const fixtures = {
 	claude:
-		'fixtures/claude-code/-home-sample-projects-demo/11111111-2222-4333-8444-555555555555.jsonl',
+		'fixtures/claude-code/-home-sample-projects-mixtape/11111111-2222-4333-8444-555555555555.jsonl',
 	codex:
 		'fixtures/codex/2026/01/15/rollout-2026-01-15T10-00-00-019a0000-aaaa-7bbb-8ccc-dddddddddddd.jsonl',
-	pi: 'fixtures/pi/--home-sample-projects-demo--/2026-01-15T11-00-00-000Z_33333333-4444-4555-8666-777777777777.jsonl',
+	pi: 'fixtures/pi/--home-sample-projects-mixtape--/2026-01-15T11-00-00-000Z_33333333-4444-4555-8666-777777777777.jsonl',
 }
 
 const read = (path: string): string => readFileSync(path, 'utf8')
@@ -54,7 +54,7 @@ describe('Claude Code source', () => {
 	it('reads session metadata', () => {
 		assert.strictEqual(transcript.sessionId, '11111111-2222-4333-8444-555555555555')
 		assert.strictEqual(transcript.model, 'claude-sonnet-4-5')
-		assert.strictEqual(transcript.cwd, '/home/sample/projects/demo')
+		assert.strictEqual(transcript.cwd, '/home/sample/projects/mixtape')
 		assert.strictEqual(transcript.startedAt, '2026-01-15T09:00:01.000Z')
 		assert.strictEqual(transcript.title, 'Fix greeting')
 		assert.strictEqual(transcript.titleSource, 'name')
@@ -83,7 +83,7 @@ describe('Claude Code source', () => {
 	it('builds a resume command', () => {
 		assert.strictEqual(
 			claudeCodeSource.resumeCommand(transcript),
-			'cd "/home/sample/projects/demo" && claude --resume 11111111-2222-4333-8444-555555555555',
+			'cd "/home/sample/projects/mixtape" && claude --resume 11111111-2222-4333-8444-555555555555',
 		)
 	})
 })
@@ -94,7 +94,7 @@ describe('Codex source', () => {
 	it('reads session metadata', () => {
 		assert.strictEqual(transcript.sessionId, '019a0000-aaaa-7bbb-8ccc-dddddddddddd')
 		assert.strictEqual(transcript.model, 'gpt-5-codex')
-		assert.strictEqual(transcript.cwd, '/home/sample/projects/demo')
+		assert.strictEqual(transcript.cwd, '/home/sample/projects/mixtape')
 		assert.strictEqual(transcript.title, 'Change the greeting to hello world')
 		assert.strictEqual(
 			codexSource.resumeCommand(transcript),
@@ -125,7 +125,7 @@ describe('Pi source', () => {
 	it('reads session metadata', () => {
 		assert.strictEqual(transcript.sessionId, '33333333-4444-4555-8666-777777777777')
 		assert.strictEqual(transcript.model, 'claude-sonnet-4-5')
-		assert.strictEqual(transcript.cwd, '/home/sample/projects/demo')
+		assert.strictEqual(transcript.cwd, '/home/sample/projects/mixtape')
 		assert.strictEqual(transcript.title, 'Rename greet to welcome')
 	})
 
