@@ -1,41 +1,4 @@
-import { type App, FuzzySuggestModal, Modal, Setting } from 'obsidian'
-
-import type { SessionFile } from '#/src/tapedeck-session-files'
-
-/** One row in the recent-sessions picker. `undefined` file means "import every listed session". */
-export interface SessionChoice {
-	readonly label: string
-	readonly file: SessionFile | undefined
-}
-
-/** Picks a session from the recent list. */
-export class SessionSuggestModal extends FuzzySuggestModal<SessionChoice> {
-	private readonly choices: ReadonlyArray<SessionChoice>
-	private readonly onChoose: (choice: SessionChoice) => void
-
-	constructor(
-		app: App,
-		choices: ReadonlyArray<SessionChoice>,
-		onChoose: (choice: SessionChoice) => void,
-	) {
-		super(app)
-		this.choices = choices
-		this.onChoose = onChoose
-		this.setPlaceholder('📼 Pick a tape to import')
-	}
-
-	override getItems(): Array<SessionChoice> {
-		return [...this.choices]
-	}
-
-	override getItemText(item: SessionChoice): string {
-		return item.label
-	}
-
-	override onChooseItem(item: SessionChoice): void {
-		this.onChoose(item)
-	}
-}
+import { type App, Modal, Setting } from 'obsidian'
 
 /** What the import-file modal hands back. */
 export type FileChoice =

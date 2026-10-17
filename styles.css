@@ -1,5 +1,66 @@
 /* Tapedeck writes plain markdown, so notes look right without this file.
-   These rules only tidy the import modal. */
+   These rules only tidy the import modals. */
 .modal .tapedeck-import-path input {
 	width: 100%;
+}
+
+/* Tape picker: search, checkbox list, and footer. */
+.tapedeck-picker .tapedeck-picker-search {
+	width: 100%;
+}
+
+.tapedeck-picker-toolbar,
+.tapedeck-picker-footer {
+	display: flex;
+	align-items: center;
+	gap: var(--size-4-2);
+	margin-block: var(--size-4-2);
+}
+
+.tapedeck-picker-status,
+.tapedeck-picker-hint {
+	color: var(--text-muted);
+	font-size: var(--font-ui-smaller);
+}
+
+.tapedeck-picker-footer .tapedeck-picker-hint {
+	margin-inline-end: auto;
+}
+
+.tapedeck-picker-list {
+	max-height: 50vh;
+	overflow-y: auto;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-s);
+}
+
+.tapedeck-picker-list:focus-visible {
+	outline: 2px solid var(--interactive-accent);
+}
+
+.tapedeck-picker-row {
+	display: flex;
+	align-items: center;
+	gap: var(--size-4-2);
+	padding: var(--size-2-2) var(--size-4-2);
+	cursor: pointer;
+}
+
+.tapedeck-picker-row input {
+	pointer-events: none;
+}
+
+.tapedeck-picker-row.is-active {
+	background-color: var(--background-modifier-hover);
+}
+
+.tapedeck-picker-label {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.tapedeck-picker-note {
+	padding: var(--size-4-2);
+	color: var(--text-muted);
 }

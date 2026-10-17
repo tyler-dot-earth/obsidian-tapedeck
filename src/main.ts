@@ -7,29 +7,30 @@ import {
 import { Effect, Layer, Logger, type ManagedRuntime } from 'effect'
 import { Notice, Plugin } from 'obsidian'
 
+import { mapWithLimit } from '#/src/tapedeck-concurrency'
 import { tapedeckErrorMessage } from '#/src/tapedeck-errors'
 import { TapedeckImporter, type ImportOutcome } from '#/src/tapedeck-importer'
-import {
-	type FileChoice,
-	ImportFileModal,
-	type SessionChoice,
-	SessionSuggestModal,
-} from '#/src/tapedeck-modals'
+import { type FileChoice, ImportFileModal } from '#/src/tapedeck-modals'
 import {
 	type TapedeckPluginSettings,
 	defaultTapedeckPluginSettings,
 	loadTapedeckPluginSettings,
 	resolveTapedeckSettings,
 } from '#/src/tapedeck-plugin-settings'
-import { sessionChoice } from '#/src/tapedeck-session-choice'
 import { listSessionFiles, type SessionFile } from '#/src/tapedeck-session-files'
 import { TapedeckSettingTab } from '#/src/tapedeck-setting-tab'
 import { type ShelfPick, ShelfSuggestModal } from '#/src/tapedeck-shelf-modals'
 import { expandHome, shelfName, type TapeShelf } from '#/src/tapedeck-shelves'
+import { TapeInfoCache } from '#/src/tapedeck-tape-info'
+import { TapePickerModal } from '#/src/tapedeck-tape-picker'
+
+/** Vault writes in flight when importing many tapes at once. */
+const importConcurrency = 4
 
 export default class TapedeckPlugin extends Plugin {
 	override settings: TapedeckPluginSettings = defaultTapedeckPluginSettings
 	private runtime: ManagedRuntime.ManagedRuntime<PluginDataStore, never> | undefined
+	private readonly tapeInfo = new TapeInfoCache()
 	private readonly importer = new TapedeckImporter(this.app, () =>
 		resolveTapedeckSettings(this.settings),
 	)
@@ -106,8 +107,8 @@ export default class TapedeckPlugin extends Plugin {
 		}
 
 		await (pick.kind === 'all'
-			? this.pickRecent(shelves, 'your enabled tape shelves')
-			: this.pickRecent([{ ...pick.shelf, enabled: true }], shelfName(pick.shelf)))
+			? this.pickTapes(shelves, 'your enabled tape shelves')
+			: this.pickTapes([{ ...pick.shelf, enabled: true }], shelfName(pick.shelf)))
 	}
 
 	private async importChoice(choice: FileChoice): Promise<void> {
@@ -116,32 +117,35 @@ export default class TapedeckPlugin extends Plugin {
 			: this.run(this.importer.importText(choice.text, undefined, choice.name)))
 	}
 
-	private async pickRecent(shelves: ReadonlyArray<TapeShelf>, where: string): Promise<void> {
-		const settings = resolveTapedeckSettings(this.settings)
+	private async pickTapes(shelves: ReadonlyArray<TapeShelf>, where: string): Promise<void> {
 		const files = await Effect.runPromise(listSessionFiles(shelves)).catch(() => [])
-		const recent = files.slice(0, Math.max(1, settings.recentCount))
 
-		if (recent.length === 0) {
+		if (files.length === 0) {
 			new Notice(`📺 Tapedeck: no tapes found on ${where}. Check Tape shelves in settings.`)
 
 			return
 		}
 
-		const choices: Array<SessionChoice> = [
-			{ label: `⏯️ Import all ${recent.length} listed tapes`, file: undefined },
-			...(await Promise.all(recent.map(sessionChoice))),
-		]
+		new TapePickerModal(this.app, {
+			where,
+			files,
+			cache: this.tapeInfo,
+			imported: this.importer.importedSessions(),
+			onImport: (chosen): void => {
+				const [only] = chosen
 
-		new SessionSuggestModal(this.app, choices, (choice) => {
-			void (choice.file === undefined
-				? this.importMany(recent)
-				: this.run(this.importer.importFile(choice.file.path, choice.file.source)))
+				void (chosen.length === 1 && only !== undefined
+					? this.run(this.importer.importFile(only.path, only.source))
+					: this.importMany(chosen))
+			},
 		}).open()
 	}
 
 	private async importMany(files: ReadonlyArray<SessionFile>): Promise<void> {
-		const outcomes = await Promise.all(
-			files.map((file) => this.importer.importFile(file.path, file.source).catch(() => undefined)),
+		new Notice(`⏯️ Tapedeck: importing ${files.length} tapes…`)
+
+		const outcomes = await mapWithLimit(files, importConcurrency, (file) =>
+			this.importer.importFile(file.path, file.source).catch(() => undefined),
 		)
 
 		const updated = outcomes.filter((outcome) => outcome?.updated === true).length
