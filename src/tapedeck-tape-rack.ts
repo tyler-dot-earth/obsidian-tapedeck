@@ -462,15 +462,15 @@ export class TapeRackView extends ItemView {
 			this.render()
 		})
 
-		this.renderRowBody(el, row)
-		this.renderRowButton(el, row)
+		this.renderRowButton(this.renderRowBody(el, row), row)
 
 		el.addEventListener('click', () => {
 			void this.clickRow(row)
 		})
 	}
 
-	private renderRowBody(el: HTMLElement, row: TapeRow): void {
+	/** Draws the meta line and title; returns the meta line, which also holds the row button. */
+	private renderRowBody(el: HTMLElement, row: TapeRow): HTMLElement {
 		const body = el.createDiv({ cls: 'tapedeck-rack-body' })
 		const meta = body.createDiv({ cls: 'tapedeck-rack-meta' })
 		meta.createSpan({ text: row.emoji, attr: { 'aria-label': row.agent } })
@@ -484,6 +484,8 @@ export class TapeRackView extends ItemView {
 
 		this.renderBadge(meta, row)
 		body.createDiv({ cls: 'tapedeck-rack-title', text: row.title ?? '…' })
+
+		return meta
 	}
 
 	private renderBadge(meta: HTMLElement, row: TapeRow): void {
@@ -529,10 +531,14 @@ export class TapeRackView extends ItemView {
 		}
 	}
 
-	private renderRowButton(el: HTMLElement, row: TapeRow): void {
+	/**
+	 * The import button sits in the meta line. With a mouse it is lifted out and overlaid on the
+	 * row's right edge on hover, so it takes no width; on touch screens it stays inline.
+	 */
+	private renderRowButton(meta: HTMLElement, row: TapeRow): void {
 		const reimport = isInVault(row)
 
-		new ExtraButtonComponent(el)
+		new ExtraButtonComponent(meta)
 			.setIcon(reimport ? 'rotate-ccw' : 'download')
 			.setTooltip(reimport ? 'Re-import this tape' : 'Import this tape')
 			.onClick(() => {

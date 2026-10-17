@@ -233,14 +233,26 @@
 	color: var(--text-muted);
 }
 
+.tapedeck-rack-tape {
+	position: relative;
+}
+
+/* The row button overlays the right edge on hover, so it never narrows the text. */
 .tapedeck-rack-tape .clickable-icon {
-	flex-shrink: 0;
+	position: absolute;
+	top: 50%;
+	right: var(--size-4-1);
+	transform: translateY(-50%);
+	padding-left: var(--size-4-6);
+	background: linear-gradient(to right, transparent, var(--background-secondary) var(--size-4-5));
 	opacity: 0;
+	pointer-events: none;
 }
 
 .tapedeck-rack-tape:hover .clickable-icon,
-.tapedeck-rack-tape .clickable-icon:focus-visible {
+.tapedeck-rack-tape:focus-within .clickable-icon {
 	opacity: 1;
+	pointer-events: auto;
 }
 
 .tapedeck-rack-note,
@@ -251,9 +263,16 @@
 	text-align: center;
 }
 
+/* Touch screens have no hover: the button stays visible, inline after the badge. */
 @media (hover: none) {
 	.tapedeck-rack-tape .clickable-icon {
+		position: static;
+		transform: none;
+		margin-left: auto;
+		padding: 0 var(--size-2-1);
+		background: none;
 		opacity: 1;
+		pointer-events: auto;
 	}
 }
 
