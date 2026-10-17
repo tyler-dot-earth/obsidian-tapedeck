@@ -5,6 +5,7 @@ import {
 	ExtraButtonComponent,
 	ItemView,
 	setIcon,
+	setTooltip,
 	ToggleComponent,
 	type ViewStateResult,
 	type WorkspaceLeaf,
@@ -22,12 +23,14 @@ import {
 	rackTapes,
 	rowClickAction,
 	stateBadges,
+	stateTooltips,
 } from '#/src/tapedeck-rack-list'
 import type { SessionFile } from '#/src/tapedeck-session-files'
 import { type TapeInfoCache, tapeRow } from '#/src/tapedeck-tape-info'
 import {
 	importButtonText,
 	isInVault,
+	isListed,
 	type NoteLookup,
 	type TapeRow,
 	type TapeSelection,
@@ -222,7 +225,8 @@ export class TapeRackView extends ItemView {
 			this.app.workspace.requestSaveLayout()
 		})
 
-		hide.createSpan({ text: 'Hide in vault' })
+		hide.createSpan({ text: 'Hide imported' })
+		setTooltip(hide, 'Hide tapes that already have a note')
 	}
 
 	/** Badges follow the vault, and returning to the rack re-lists stale shelves. */
@@ -396,7 +400,11 @@ export class TapeRackView extends ItemView {
 		const badge = stateBadges[row.state]
 
 		if (badge !== '') {
-			meta.createSpan({ cls: `tapedeck-rack-badge is-${row.state}`, text: badge })
+			meta.createSpan({
+				cls: `tapedeck-rack-badge is-${row.state}`,
+				text: badge,
+				attr: { 'aria-label': stateTooltips[row.state] },
+			})
 		}
 
 		body.createDiv({ cls: 'tapedeck-rack-title', text: row.title ?? '…' })
@@ -445,7 +453,8 @@ export class TapeRackView extends ItemView {
 		const reading =
 			this.loaded < this.rows.length ? ` · reading ${this.loaded}/${this.rows.length}` : ''
 
-		this.statusEl.setText(`${rackSummary(visible)}${reading}`)
+		const unlisted = this.rows.filter((row) => !isListed(row)).length
+		this.statusEl.setText(`${rackSummary(visible, unlisted)}${reading}`)
 		const count = this.selection.size
 		this.selectionEl.toggleClass('is-hidden', count === 0)
 		this.importButton?.setButtonText(importButtonText(count))

@@ -84,7 +84,12 @@ describe('rack rows', () => {
 	})
 
 	it('summarises counts', () => {
-		assert.strictEqual(rackSummary(rows), '4 tapes · 1 new · 1 changed')
-		assert.strictEqual(rackSummary([]), '0 tapes · 0 new')
+		assert.strictEqual(rackSummary(rows, 0), '4 tapes · 1 not imported · 1 changed')
+		assert.strictEqual(rackSummary([], 0), '0 tapes · 0 not imported')
+
+		assert.strictEqual(
+			rackSummary(rows.slice(1, 2), 3),
+			'1 tape · 1 not imported · 3 subagent or empty hidden',
+		)
 	})
 })

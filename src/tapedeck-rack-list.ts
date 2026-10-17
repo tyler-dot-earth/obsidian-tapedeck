@@ -94,15 +94,27 @@ export const stateBadges: Record<TapeState, string> = {
 	changed: 'changed',
 }
 
-/** "120 tapes · 8 new · 3 changed" for the rack's status line. */
-export const rackSummary = (rows: ReadonlyArray<TapeRow>): string => {
+/** Tooltips for the state badges. */
+export const stateTooltips: Record<TapeState, string> = {
+	unknown: '',
+	new: 'Not imported yet',
+	imported: 'Has a note in the vault',
+	changed: 'Changed since it was imported',
+}
+
+/**
+ * "120 tapes · 8 not imported · 3 changed · 40 subagent or empty hidden" for the status line.
+ * `unlisted` counts tapes left out of lists (see `isListed`).
+ */
+export const rackSummary = (rows: ReadonlyArray<TapeRow>, unlisted: number): string => {
 	const count = (state: TapeState): number => rows.filter((row) => row.state === state).length
 	const changed = count('changed')
 
 	const parts = [
 		`${rows.length} ${rows.length === 1 ? 'tape' : 'tapes'}`,
-		`${count('new')} new`,
+		`${count('new')} not imported`,
 		...(changed > 0 ? [`${changed} changed`] : []),
+		...(unlisted > 0 ? [`${unlisted} subagent or empty hidden`] : []),
 	]
 
 	return parts.join(' · ')

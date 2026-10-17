@@ -8,6 +8,7 @@ import {
 	clearShown,
 	filterTapes,
 	importButtonText,
+	isListed,
 	moveActive,
 	type NoteLookup,
 	selectedTapes,
@@ -254,10 +255,12 @@ export class TapePickerModal extends Modal {
 		const reading =
 			this.loaded < this.rows.length ? ` · reading ${this.loaded}/${this.rows.length}` : ''
 
+		const listed = this.rows.filter(isListed).length
+
 		const hiddenNote = hidden > 0 ? ` (${hidden} hidden by search)` : ''
 
 		this.statusEl.setText(
-			`${count} selected${hiddenNote} · ${this.shown.length} of ${this.rows.length} shown${reading}`,
+			`${count} selected${hiddenNote} · ${this.shown.length} of ${listed} shown${reading}`,
 		)
 
 		this.selectAllButton
