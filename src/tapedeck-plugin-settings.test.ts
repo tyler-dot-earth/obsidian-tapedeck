@@ -79,8 +79,8 @@ describe('Tapedeck plugin settings', () => {
 
 	it('stores an edited shelf list and drops the old folder keys', () => {
 		const shelves = [...defaultTapeShelves, extraShelf]
-		const next = withTapeShelves({ codexDirectory: '/data/codex', recentCount: 5 }, shelves)
-		assert.deepStrictEqual(next, { recentCount: 5, tapeShelves: shelves })
+		const next = withTapeShelves({ codexDirectory: '/data/codex', truncateLines: 5 }, shelves)
+		assert.deepStrictEqual(next, { truncateLines: 5, tapeShelves: shelves })
 	})
 
 	it('restores defaults by dropping the shelf list', () => {
@@ -93,4 +93,15 @@ describe('Tapedeck plugin settings', () => {
 	it('keeps an empty shelf list empty', () => {
 		assert.deepStrictEqual(resolveTapedeckSettings(withTapeShelves({}, [])).tapeShelves, [])
 	})
+
+	it.effect('drops the old recentCount key and keeps the rest', () =>
+		Effect.gen(function* () {
+			const settings = yield* loadTapedeckPluginSettings
+			assert.deepStrictEqual(settings, { importFolder: 'Agents', truncateLines: 5 })
+		}).pipe(
+			Effect.provide(
+				memoryPluginDataStoreLayer({ recentCount: 25, importFolder: 'Agents', truncateLines: 5 }),
+			),
+		),
+	)
 })

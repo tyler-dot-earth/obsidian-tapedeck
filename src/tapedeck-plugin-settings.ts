@@ -13,7 +13,8 @@ import {
  * Global plugin settings. Missing keys fall back to `tapedeckDefaults`. A missing `tapeShelves`
  * means the default shelves. The three `*Directory` keys are from before shelves; they are still
  * decoded so an upgrade carries a customised folder onto its default shelf, and are dropped the
- * first time the shelf list is saved.
+ * first time the shelf list is saved. `recentCount` (how many tapes the old picker listed) is gone:
+ * the picker now searches every tape, and decoding drops the stale key from older data.
  */
 export const TapedeckPluginSettings = Schema.Struct({
 	schemaVersion: Schema.optionalKey(Schema.Literal(1)),
@@ -28,7 +29,6 @@ export const TapedeckPluginSettings = Schema.Struct({
 	truncateLines: Schema.optionalKey(Schema.Number),
 	includeThinking: Schema.optionalKey(Schema.Boolean),
 	noteStyle: Schema.optionalKey(Schema.Literals(['raw', 'summary'])),
-	recentCount: Schema.optionalKey(Schema.Number),
 	redactHomePaths: Schema.optionalKey(Schema.Boolean),
 	redactSecrets: Schema.optionalKey(Schema.Boolean),
 })
@@ -63,7 +63,6 @@ export const tapedeckDefaults: ResolvedTapedeckSettings = {
 	truncateLines: 40,
 	includeThinking: false,
 	noteStyle: 'raw',
-	recentCount: 10,
 	redactHomePaths: true,
 	redactSecrets: true,
 }
@@ -76,7 +75,6 @@ export const tapedeckSettingKeys: ReadonlyArray<TapedeckSettingKey> = [
 	'truncateLines',
 	'includeThinking',
 	'noteStyle',
-	'recentCount',
 	'redactHomePaths',
 	'redactSecrets',
 ]

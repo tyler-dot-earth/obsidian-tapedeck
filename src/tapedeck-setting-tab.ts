@@ -29,11 +29,6 @@ export class TapedeckSettingTab extends PluginSettingTab {
 	override getSettingDefinitions(): SettingDefinitionItem[] {
 		return [
 			...this.shelfDefinitions(),
-			{
-				name: 'Recent tapes to list',
-				desc: 'How many tapes Import from tape shelves shows.',
-				control: { type: 'number', key: 'recentCount', placeholder: '10' },
-			},
 			{ name: '🏷️ Notes', desc: 'How a transcript lands in the vault.' },
 			{
 				name: 'Import folder',
