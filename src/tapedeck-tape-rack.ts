@@ -114,7 +114,7 @@ export class TapeRackView extends ItemView {
 	private files: ReadonlyArray<SessionFile> = []
 	private rows: Array<TapeRow> = []
 	private notes: NoteLookup = () => undefined
-	private selection: TapeSelection = new Set()
+	private picked: TapeSelection = new Set()
 	private collapsed: ReadonlySet<string> = new Set()
 	private query = ''
 	private groupBy: RackGrouping = defaultRackGrouping
@@ -293,7 +293,7 @@ export class TapeRackView extends ItemView {
 		})
 
 		this.clearButton = new ButtonComponent(this.selectionEl).setButtonText('Clear').onClick(() => {
-			this.selection = new Set()
+			this.picked = new Set()
 			this.render()
 		})
 	}
@@ -396,7 +396,7 @@ export class TapeRackView extends ItemView {
 		this.loaded = 0
 		this.rows = this.files.map((file) => this.rowFor(file))
 		const known = new Set(this.files.map((file) => file.path))
-		this.selection = new Set([...this.selection].filter((path) => known.has(path)))
+		this.picked = new Set([...this.picked].filter((path) => known.has(path)))
 		this.render()
 		await this.loadTitles(this.generation)
 	}
@@ -519,18 +519,18 @@ export class TapeRackView extends ItemView {
 	private renderRow(row: TapeRow): void {
 		const el = this.listEl.createDiv({ cls: `tapedeck-rack-tape is-${row.state}` })
 		const outcome = this.outcomes.get(row.path)
-		el.toggleClass('is-checked', this.selection.has(row.path))
+		el.toggleClass('is-checked', this.picked.has(row.path))
 		el.toggleClass('is-failed', outcome?.kind === 'failed')
 		el.toggleClass('is-flash', (this.flashUntil.get(row.path) ?? 0) > Date.now())
 
 		el.setAttr('aria-label', rowClickAction(row) === 'open' ? 'Open the note' : 'Preview this tape')
 
 		const box = el.createEl('input', { type: 'checkbox', cls: 'tapedeck-rack-check' })
-		box.checked = this.selection.has(row.path)
+		box.checked = this.picked.has(row.path)
 
 		box.addEventListener('click', (event) => {
 			event.stopPropagation()
-			this.selection = toggleTape(this.selection, row.path)
+			this.picked = toggleTape(this.picked, row.path)
 			this.render()
 		})
 
@@ -652,7 +652,7 @@ export class TapeRackView extends ItemView {
 
 		const unlisted = this.rows.filter((row) => !isListed(row)).length
 		this.statusEl.setText(`${rackSummary(visible, unlisted)}${reading}`)
-		const count = this.selection.size
+		const count = this.picked.size
 		this.selectionEl.toggleClass('is-hidden', count === 0)
 		this.importButton?.setButtonText(importButtonText(count))
 		this.clearButton?.setDisabled(count === 0)
@@ -693,10 +693,10 @@ export class TapeRackView extends ItemView {
 	}
 
 	private importSelected(): void {
-		const chosen = this.rows.filter((row) => this.selection.has(row.path))
+		const chosen = this.rows.filter((row) => this.picked.has(row.path))
 
 		const run = (): void => {
-			this.selection = new Set()
+			this.picked = new Set()
 			this.render()
 			void this.importRows(chosen)
 		}

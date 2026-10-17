@@ -50,7 +50,8 @@ export class TapePickerModal extends Modal {
 	private readonly rowIndex: ReadonlyMap<string, number>
 	private rows: Array<TapeRow>
 	private shown: Array<TapeRow> = []
-	private selection: TapeSelection = new Set()
+	// Not `selection`: Obsidian 1.14 Modal sets its own `selection` on open.
+	private picked: TapeSelection = new Set()
 	private query = ''
 	private active = -1
 	private loaded = 0
@@ -103,11 +104,11 @@ export class TapePickerModal extends Modal {
 		const toolbar = this.contentEl.createDiv({ cls: 'tapedeck-picker-toolbar' })
 
 		this.selectAllButton = new ButtonComponent(toolbar).onClick(() => {
-			this.setSelection(selectShown(this.selection, this.shown))
+			this.setPicked(selectShown(this.picked, this.shown))
 		})
 
 		this.selectNoneButton = new ButtonComponent(toolbar).onClick(() => {
-			this.setSelection(clearShown(this.selection, this.shown))
+			this.setPicked(clearShown(this.picked, this.shown))
 		})
 
 		toolbar.append(this.statusEl)
@@ -230,7 +231,7 @@ export class TapePickerModal extends Modal {
 	}
 
 	private paintRow(el: HTMLElement, box: HTMLInputElement, row: TapeRow, index: number): void {
-		const checked = this.selection.has(row.path)
+		const checked = this.picked.has(row.path)
 		box.checked = checked
 		el.toggleClass('is-active', index === this.active)
 		el.toggleClass('is-checked', checked)
@@ -248,8 +249,8 @@ export class TapePickerModal extends Modal {
 	}
 
 	private updateControls(): void {
-		const count = this.selection.size
-		const shownSelected = this.shown.filter((row) => this.selection.has(row.path)).length
+		const count = this.picked.size
+		const shownSelected = this.shown.filter((row) => this.picked.has(row.path)).length
 		const hidden = count - shownSelected
 
 		const reading =
@@ -265,14 +266,14 @@ export class TapePickerModal extends Modal {
 
 		this.selectAllButton
 			?.setButtonText(`Select all ${this.shown.length}`)
-			.setDisabled(this.shown.length === 0 || allShownSelected(this.selection, this.shown))
+			.setDisabled(this.shown.length === 0 || allShownSelected(this.picked, this.shown))
 
 		this.selectNoneButton?.setButtonText('Select none').setDisabled(shownSelected === 0)
 		this.importButton?.setButtonText(importButtonText(count)).setDisabled(count === 0)
 	}
 
-	private setSelection(selection: TapeSelection): void {
-		this.selection = selection
+	private setPicked(selection: TapeSelection): void {
+		this.picked = selection
 		this.rowEls.forEach((_el, index) => {
 			this.repaint(index)
 		})
@@ -286,7 +287,7 @@ export class TapePickerModal extends Modal {
 			return
 		}
 
-		this.selection = toggleTape(this.selection, row.path)
+		this.picked = toggleTape(this.picked, row.path)
 		this.repaint(index)
 		this.updateControls()
 	}
@@ -355,7 +356,7 @@ export class TapePickerModal extends Modal {
 	}
 
 	private submit(): void {
-		const chosen = selectedTapes(this.rows, this.selection).flatMap((row) => {
+		const chosen = selectedTapes(this.rows, this.picked).flatMap((row) => {
 			const file = this.filesByPath.get(row.path)
 
 			return file === undefined ? [] : [file]
