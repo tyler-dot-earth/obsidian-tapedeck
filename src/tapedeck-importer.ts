@@ -230,6 +230,7 @@ export class TapedeckImporter {
 			toolOutput: settings.toolOutput,
 			truncateLines: settings.truncateLines,
 			includeThinking: settings.includeThinking,
+			showAbandonedBranches: settings.showAbandonedBranches,
 			noteStyle: settings.noteStyle,
 			machine: settings.includeMachine ? hostname() : undefined,
 			resume: sourceFor(transcript.harness).resumeCommand(transcript),
@@ -246,7 +247,9 @@ export class TapedeckImporter {
 		const existing = this.findNote(parsed.harness, parsed.sessionId)
 		const notePath = existing?.path ?? (await this.freePath(parsed))
 
-		const transcript = await resolveImages(parsed, {
+		const shown = settings.showAbandonedBranches ? parsed : { ...parsed, abandoned: [] }
+
+		const transcript = await resolveImages(shown, {
 			enabled: settings.importImages,
 			maxBytes: Math.max(0, settings.maxImageMB) * 1024 * 1024,
 			sessionId: parsed.sessionId,

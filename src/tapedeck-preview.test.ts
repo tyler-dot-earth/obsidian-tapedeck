@@ -25,6 +25,7 @@ const transcript: Transcript = {
 	titleSource: 'prompt',
 	subagent: false,
 	turns: Array.from({ length: 10 }, (_, index) => turn(index)),
+	abandoned: [],
 }
 
 describe('tape preview', () => {

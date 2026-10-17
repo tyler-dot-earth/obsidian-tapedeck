@@ -1,6 +1,7 @@
 import { localDateTime, localTime, parseTimestamp } from '#/src/tapedeck-filename'
 import { redactHomePaths, redactSecrets } from '#/src/tapedeck-redact'
 import type {
+	AbandonedBranch,
 	ImageSource,
 	ToolBlock,
 	Transcript,
@@ -18,6 +19,8 @@ export interface RenderOptions {
 	readonly toolOutput: ToolOutputMode
 	readonly truncateLines: number
 	readonly includeThinking: boolean
+	/** Put answered branches the user rewound past in a folded callout where they branched off. */
+	readonly showAbandonedBranches: boolean
 	readonly noteStyle: NoteStyle
 	/** Computer name for the `machine` property; undefined leaves the property out. */
 	readonly machine: string | undefined
@@ -165,22 +168,63 @@ const toolSummary = (blocks: ReadonlyArray<TranscriptBlock>): string | undefined
 	return `*📼 ${names.length} tool call${names.length > 1 ? 's' : ''}: ${list.join(', ')}*`
 }
 
-const turnHeading = (turn: TranscriptTurn): string => {
+const turnLabel = (turn: TranscriptTurn): string => {
 	const time = parseTimestamp(turn.timestamp)
 	const label = turn.role === 'user' ? '🗣️ User' : '🤖 Assistant'
 
-	return time === undefined ? `## ${label}` : `## ${label} · ${localTime(time)}`
+	return time === undefined ? label : `${label} · ${localTime(time)}`
 }
 
-const renderTurn = (turn: TranscriptTurn, options: RenderOptions): string | undefined => {
+const turnHeading = (turn: TranscriptTurn): string => `## ${turnLabel(turn)}`
+
+const renderTurn = (
+	turn: TranscriptTurn,
+	options: RenderOptions,
+	heading: (turn: TranscriptTurn) => string = turnHeading,
+): string | undefined => {
 	const summary = options.noteStyle === 'summary' && turn.role === 'assistant'
 	const visible = summary ? turn.blocks.filter((block) => block.kind !== 'tool') : turn.blocks
 	const bodies = visible.map((block) => renderBlock(block, options))
 	const tools = summary ? toolSummary(turn.blocks) : undefined
 	const parts = [...bodies, tools].filter((part) => part !== undefined)
 
-	return parts.length === 0 ? undefined : [turnHeading(turn), ...parts].join('\n\n')
+	return parts.length === 0 ? undefined : [heading(turn), ...parts].join('\n\n')
 }
+
+const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+
+/** `⏪ Abandoned branch · 2 turns · Oct 16 08:44`, counting the prompts on the branch. */
+const branchTitle = (branch: AbandonedBranch): string => {
+	const prompts = branch.turns.filter((turn) => turn.role === 'user').length
+	const time = parseTimestamp(branch.turns[0]?.timestamp)
+	const count = `${prompts} turn${prompts === 1 ? '' : 's'}`
+
+	const when =
+		time === undefined ? '' : ` · ${months[time.getMonth()]} ${time.getDate()} ${localTime(time)}`
+
+	return `⏪ Abandoned branch · ${count}${when}`
+}
+
+/** A folded callout with a branch's turns, headed in bold so they stay out of the outline. */
+const renderBranch = (branch: AbandonedBranch, options: RenderOptions): string => {
+	const turns = branch.turns.flatMap(
+		(turn) => renderTurn(turn, options, (shown) => `**${turnLabel(shown)}**`) ?? [],
+	)
+
+	return quoted([`[!note]- ${branchTitle(branch)}`, turns.join('\n\n')].join('\n'))
+}
+
+/** Rendered branches that sit after the first `after` live turns. */
+const branchesAfter = (
+	transcript: Transcript,
+	after: number,
+	options: RenderOptions,
+): Array<string> =>
+	options.showAbandonedBranches
+		? transcript.abandoned
+				.filter((branch) => branch.after === after)
+				.map((branch) => renderBranch(branch, options))
+		: []
 
 const yamlString = (value: string | undefined): string =>
 	value === undefined || value === '' ? '' : ` ${JSON.stringify(value)}`
@@ -210,7 +254,17 @@ const frontmatter = (transcript: Transcript, options: RenderOptions): string => 
 
 /** Renders a transcript as a full note: frontmatter, title, then turns. */
 export const renderTranscriptNote = (transcript: Transcript, options: RenderOptions): string => {
-	const turns = transcript.turns.flatMap((turn) => renderTurn(turn, options) ?? [])
+	const turns = [
+		...branchesAfter(transcript, 0, options),
+		...transcript.turns.flatMap((turn, index) => {
+			const rendered = renderTurn(turn, options)
+
+			return [
+				...(rendered === undefined ? [] : [rendered]),
+				...branchesAfter(transcript, index + 1, options),
+			]
+		}),
+	]
 
 	const note = [
 		frontmatter(transcript, options),

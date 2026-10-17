@@ -13,6 +13,7 @@ const transcript: Transcript = {
 	titleSource: 'prompt',
 	subagent: false,
 	turns: [],
+	abandoned: [],
 }
 
 describe('transcriptFilename', () => {

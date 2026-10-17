@@ -330,6 +330,7 @@ const parse = (text: string): Result.Result<Transcript, TapedeckParseError> => {
 		...titleFields(tapeTitle(undefined, userTexts(turns))),
 		subagent: meta.parent_thread_id !== undefined && meta.parent_thread_id !== null,
 		turns,
+		abandoned: [],
 	})
 }
 

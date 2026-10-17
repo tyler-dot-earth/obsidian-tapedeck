@@ -166,5 +166,11 @@ export const resolveImages = async (
 	return {
 		...transcript,
 		turns: await Promise.all(transcript.turns.map((turn) => resolveTurn(turn, options, save))),
+		abandoned: await Promise.all(
+			transcript.abandoned.map(async (branch) => ({
+				after: branch.after,
+				turns: await Promise.all(branch.turns.map((turn) => resolveTurn(turn, options, save))),
+			})),
+		),
 	}
 }

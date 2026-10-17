@@ -67,6 +67,13 @@ export interface TranscriptTurn {
 	readonly blocks: ReadonlyArray<TranscriptBlock>
 }
 
+/** Turns the user rewound past or edited away, and where they branched off the live turns. */
+export interface AbandonedBranch {
+	/** How many live turns come before the branch point. */
+	readonly after: number
+	readonly turns: ReadonlyArray<TranscriptTurn>
+}
+
 /** Harness-neutral session, ready to render. */
 export interface Transcript {
 	readonly harness: Harness
@@ -79,6 +86,8 @@ export interface Transcript {
 	/** A helper thread the agent started (a Codex subagent or review), not a session you ran. */
 	readonly subagent: boolean
 	readonly turns: ReadonlyArray<TranscriptTurn>
+	/** Answered branches the user moved away from; only Claude Code sessions record these. */
+	readonly abandoned: ReadonlyArray<AbandonedBranch>
 }
 
 /** Recorded tool result, keyed by call id while a parser walks the file. */

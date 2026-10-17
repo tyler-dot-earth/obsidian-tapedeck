@@ -281,6 +281,7 @@ const parse = (text: string): Result.Result<Transcript, TapedeckParseError> => {
 		...titleFields(tapeTitle(harnessName('pi', raw), userTexts(turns))),
 		subagent: false,
 		turns,
+		abandoned: [],
 	})
 }
 

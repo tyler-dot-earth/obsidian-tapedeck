@@ -173,11 +173,13 @@ Each section is its own card.
 
 - **📼 Tape shelves**: saved folders to import from (see above), with the restore defaults button in its header. The old "recent sessions to list" setting is gone, since the picker searches every tape; an old value in `data.json` is ignored.
 - **⏰ Auto-import**: a schedule per shelf, off by default (see Auto-import).
-- **🏷️ Notes**: import folder, filename pattern (`{date} {time} {harness} {session} {title}`), raw or summary style, fold tool calls, tool output (full, truncated, none), truncate length, include thinking.
+- **🏷️ Notes**: import folder, filename pattern (`{date} {time} {harness} {session} {title}`), raw or summary style, fold tool calls, tool output (full, truncated, none), truncate length, include thinking, show abandoned branches.
 - **⏸️ Freeze-frames**: import images (on by default) and a size limit in MB (0, the default, means no limit). Bigger images get a note instead.
 - **✂️ Redaction**: home folder as `~`, and mask secrets (API keys, GitHub and Slack tokens, AWS keys, JWTs, bearer headers, private keys, `key=value` secrets). These are simple patterns. Read a note before you share it. **Machine name** (on by default) adds the computer's name as the `machine` property; turn it off to leave the property out.
 
 Summary style keeps what you and the agent said and replaces tool callouts with one line per turn, like `📼 3 tool calls: Read, Edit, Bash`.
+
+Claude Code tapes follow the thread you kept, so turns you rewound past or edited away are left out. Turn on **Show abandoned branches** to keep the ones the agent answered, in a folded `⏪ Abandoned branch` callout where they branched off.
 
 License is MIT.
 

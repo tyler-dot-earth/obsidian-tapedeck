@@ -1,5 +1,6 @@
 import { Option, Result, Schema } from 'effect'
 
+import { splitThread } from '#/src/tapedeck-claude-thread'
 import { newFileDiff, replacementDiff } from '#/src/tapedeck-diff'
 import { TapedeckParseError } from '#/src/tapedeck-errors'
 import { imageBlock, imageFromUrl, imageLabel, placeLabelledImages } from '#/src/tapedeck-images'
@@ -7,6 +8,7 @@ import { decodeJsonLines, someLineMatches, prettyJson, textOf } from '#/src/tape
 import { harnessName, tapeTitle, titleFields, userTexts } from '#/src/tapedeck-tape-title'
 import {
 	appendTurn,
+	type AbandonedBranch,
 	type ImageSource,
 	jsonLines,
 	toolResultFields,
@@ -58,6 +60,9 @@ type ClaudeBlock = Schema.Schema.Type<typeof ClaudeBlock>
 
 const ClaudeLine = Schema.Struct({
 	type: Schema.String,
+	subtype: Schema.optionalKey(Schema.String),
+	uuid: Schema.optionalKey(Schema.String),
+	parentUuid: Schema.optionalKey(Schema.NullOr(Schema.String)),
 	sessionId: Schema.optionalKey(Schema.String),
 	cwd: Schema.optionalKey(Schema.String),
 	timestamp: Schema.optionalKey(Schema.String),
@@ -219,20 +224,25 @@ const isConversationLine = (line: ClaudeLine): boolean =>
 	line.isMeta !== true &&
 	line.isSidechain !== true
 
-const firstDefined = (values: ReadonlyArray<string | undefined>): string | undefined =>
-	values.find((value) => value !== undefined && value !== '' && value !== '<synthetic>')
+/** Something the user typed: not a tool result, a meta line, or an empty message. */
+const isPromptLine = (line: ClaudeLine): boolean => {
+	const content = line.message?.content
 
-const parse = (text: string): Result.Result<Transcript, TapedeckParseError> => {
-	const raw = jsonLines(text)
-	const all = decodeJsonLines(ClaudeLine, raw)
-	const lines = all.filter(isConversationLine)
-	const sessionId = firstDefined(all.map((line) => line.sessionId))
-
-	if (sessionId === undefined) {
-		return Result.fail(new TapedeckParseError({ message: 'No Claude Code session found' }))
+	if (line.type !== 'user' || !isConversationLine(line) || content === undefined) {
+		return false
 	}
 
-	const results = collectResults(lines)
+	return Schema.is(Schema.String)(content)
+		? content.trim() !== ''
+		: content.some((block) => block.type === 'text') &&
+				!content.some((block) => block.type === 'tool_result')
+}
+
+const lineTurns = (
+	lines: ReadonlyArray<ClaudeLine>,
+	results: Map<string, ToolResult>,
+	turnOf: Map<ClaudeLine, number>,
+): Array<TranscriptTurn> => {
 	const turns: Array<TranscriptTurn> = []
 
 	for (const line of lines) {
@@ -241,7 +251,44 @@ const parse = (text: string): Result.Result<Transcript, TapedeckParseError> => {
 			timestamp: line.timestamp,
 			blocks: lineBlocks(line, results),
 		})
+		turnOf.set(line, turns.length)
 	}
+
+	return turns
+}
+
+/** Whether the agent said or did anything on a branch, so it is worth showing. */
+const isAnswered = (turns: ReadonlyArray<TranscriptTurn>): boolean =>
+	turns.some(
+		(turn) =>
+			turn.role === 'assistant' &&
+			turn.blocks.some((block) => block.kind === 'text' || block.kind === 'tool'),
+	)
+
+const firstDefined = (values: ReadonlyArray<string | undefined>): string | undefined =>
+	values.find((value) => value !== undefined && value !== '' && value !== '<synthetic>')
+
+const parse = (text: string): Result.Result<Transcript, TapedeckParseError> => {
+	const raw = jsonLines(text)
+	const all = decodeJsonLines(ClaudeLine, raw)
+	const thread = splitThread(all, isConversationLine, isPromptLine)
+	const lines = thread.live
+	const sessionId = firstDefined(all.map((line) => line.sessionId))
+
+	if (sessionId === undefined) {
+		return Result.fail(new TapedeckParseError({ message: 'No Claude Code session found' }))
+	}
+
+	const results = collectResults(all.filter(isConversationLine))
+	const turnOf = new Map<ClaudeLine, number>()
+	const turns = lineTurns(lines, results, turnOf)
+
+	const abandoned = thread.dead.flatMap((branch): Array<AbandonedBranch> => {
+		const branchTurns = lineTurns(branch.lines, results, new Map())
+		const after = branch.fork === undefined ? 0 : (turnOf.get(branch.fork) ?? 0)
+
+		return isAnswered(branchTurns) ? [{ after, turns: branchTurns }] : []
+	})
 
 	return Result.succeed({
 		harness: 'claude-code',
@@ -252,6 +299,7 @@ const parse = (text: string): Result.Result<Transcript, TapedeckParseError> => {
 		...titleFields(tapeTitle(harnessName('claude-code', raw), userTexts(turns))),
 		subagent: false,
 		turns,
+		abandoned,
 	})
 }
 

@@ -59,6 +59,12 @@ const noteSettings: SettingDefinition[] = [
 		desc: 'Keep stored model reasoning in a folded quote.',
 		control: { type: 'toggle', key: 'includeThinking' },
 	},
+	{
+		name: 'Show abandoned branches',
+		desc: 'Fold rewound turns into a collapsed box where they branched off.',
+		aliases: ['rewind', 'rewound', 'edited prompts'],
+		control: { type: 'toggle', key: 'showAbandonedBranches' },
+	},
 ]
 
 /** ⏸️ Freeze-frames: images from tapes. */

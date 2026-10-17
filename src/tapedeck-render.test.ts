@@ -20,6 +20,7 @@ const options: RenderOptions = {
 	toolOutput: 'full',
 	truncateLines: 1,
 	includeThinking: false,
+	showAbandonedBranches: false,
 	noteStyle: 'raw',
 	machine: 'sample-host',
 	resume: claudeCodeSource.resumeCommand(transcript),
