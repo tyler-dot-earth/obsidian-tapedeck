@@ -1,0 +1,17 @@
+node_modules
+main.js
+app.css
+*.map
+data.json
+.direnv
+.DS_Store
+*.tsbuildinfo
+coverage
+dist
+.idea
+.vscode
+example/vault/.obsidian/workspace.json
+example/vault/.obsidian/workspace-mobile.json
+example/vault/.obsidian/plugins/dailies/main.js
+example/vault/.obsidian/plugins/dailies/manifest.json
+example/vault/.obsidian/plugins/dailies/styles.css
