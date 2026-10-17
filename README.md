@@ -1,6 +1,6 @@
 # Tapedeck 📼 agent transcripts for Obsidian
 
-Every agent session is a tape. Pop a Claude Code, Codex CLI, or Pi session into the deck and get a note you can actually read, labelled and ready to rewind.
+Every agent session is a tape. Pop a Claude Code, ChatGPT / Codex, or Pi session into the deck and get a note you can actually read, labelled and ready to rewind.
 
 ## Use
 
@@ -75,18 +75,18 @@ A tape shelf is a saved folder Tapedeck imports from, so you never have to pick 
 
 - **Folder**: where the `.jsonl` files live. `~` means your home folder on every OS (`%USERPROFILE%` on Windows), and is expanded only when Tapedeck reads the folder, so the same settings work on another machine.
 - **Label**: optional. Shown instead of the folder in the picker.
-- **Agent**: Claude Code, Codex CLI, Pi, or Auto-detect. Auto-detect reads the first lines of each file. It takes files laid out the way their agent writes them, or loose in the shelf folder.
+- **Agent**: Claude Code, ChatGPT / Codex, Pi, or Auto-detect. Auto-detect reads the first lines of each file. It takes files laid out the way their agent writes them, or loose in the shelf folder.
 - **On/off toggle**: only enabled shelves count for **All enabled shelves**. You can still pick a disabled one directly.
 
 Add shelves with **+**, edit with the pencil, drag to reorder, delete with the bin. A shelf whose folder does not exist is marked _folder not found_ in settings and _unavailable_ in the picker, and is skipped without an error.
 
 New installs start with one shelf per agent at its default folder:
 
-| Shelf       | Folder                 |
-| ----------- | ---------------------- |
-| Claude Code | `~/.claude/projects`   |
-| Codex CLI   | `~/.codex/sessions`    |
-| Pi          | `~/.pi/agent/sessions` |
+| Shelf           | Folder                 |
+| --------------- | ---------------------- |
+| Claude Code     | `~/.claude/projects`   |
+| ChatGPT / Codex | `~/.codex/sessions`    |
+| Pi              | `~/.pi/agent/sessions` |
 
 Pi's default comes from `getSessionsDir()` in [pi's `config.ts`](https://github.com/earendil-works/pi/blob/main/packages/coding-agent/src/config.ts) and its [sessions doc](https://github.com/earendil-works/pi/blob/main/packages/coding-agent/docs/sessions.md). If you moved it with `--session-dir`, `PI_CODING_AGENT_SESSION_DIR`, or pi's `sessionDir` setting, edit the Pi shelf to match.
 
@@ -94,11 +94,11 @@ The ↺ **Restore default shelves** button in the shelves card puts those three 
 
 ## Sources
 
-| Source      | Default layout                                     | Resume command                     |
-| ----------- | -------------------------------------------------- | ---------------------------------- |
-| Claude Code | `~/.claude/projects/<project>/<session-id>.jsonl`  | `cd <cwd> && claude --resume <id>` |
-| Codex CLI   | `~/.codex/sessions/YYYY/MM/DD/rollout-*.jsonl`     | `codex resume <id>`                |
-| Pi          | `~/.pi/agent/sessions/--<cwd>--/<time>_<id>.jsonl` | `cd <cwd> && pi --session <id>`    |
+| Source          | Default layout                                     | Resume command                     |
+| --------------- | -------------------------------------------------- | ---------------------------------- |
+| Claude Code     | `~/.claude/projects/<project>/<session-id>.jsonl`  | `cd <cwd> && claude --resume <id>` |
+| ChatGPT / Codex | `~/.codex/sessions/YYYY/MM/DD/rollout-*.jsonl`     | `codex resume <id>`                |
+| Pi              | `~/.pi/agent/sessions/--<cwd>--/<time>_<id>.jsonl` | `cd <cwd> && pi --session <id>`    |
 
 On Windows, `~` is `%USERPROFILE%`. Point Tapedeck somewhere else with a tape shelf.
 
@@ -140,11 +140,11 @@ Tool calls are callouts, folded by default. Input is a JSON block, edits and pat
 
 Images in a tape are saved into the vault as real files and embedded where they appeared.
 
-| Source      | What Tapedeck reads                                                                                                                                                                                                       |
-| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Claude Code | Pasted images (base64 `image` blocks in user messages) and images in tool results, such as `Read` on a PNG.                                                                                                               |
-| Codex CLI   | `input_image` items with `data:` URLs in user messages and tool output (`view_image`). A local image Codex tagged by path but did not inline is copied from that path if the file still exists. Remote URLs become links. |
-| Pi          | `{ type: "image", data, mimeType }` parts in user messages and tool results.                                                                                                                                              |
+| Source          | What Tapedeck reads                                                                                                                                                                                                       |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Claude Code     | Pasted images (base64 `image` blocks in user messages) and images in tool results, such as `Read` on a PNG.                                                                                                               |
+| ChatGPT / Codex | `input_image` items with `data:` URLs in user messages and tool output (`view_image`). A local image Codex tagged by path but did not inline is copied from that path if the file still exists. Remote URLs become links. |
+| Pi              | `{ type: "image", data, mimeType }` parts in user messages and tool results.                                                                                                                                              |
 
 - **Where they land**: Obsidian's attachment folder (Settings → Files and links → Default location for new attachments), worked out for the transcript note, so "same folder as current file" and subfolder settings work too.
 - **Names** are `tapedeck-<first 8 of session id>-<12 hex of a SHA-256 of the image>.<ext>`. Re-importing a tape reuses the files already there instead of writing `… 1.png` copies, and an image that appears twice in a tape is saved once.

@@ -39,7 +39,7 @@ export type TapeShelf = Schema.Schema.Type<typeof TapeShelf>
 export const shelfHarnessLabels: Record<ShelfHarness, string> = {
 	'auto': 'Auto-detect',
 	'claude-code': 'Claude Code',
-	'codex': 'Codex CLI',
+	'codex': 'ChatGPT / Codex',
 	'pi': 'Pi',
 }
 

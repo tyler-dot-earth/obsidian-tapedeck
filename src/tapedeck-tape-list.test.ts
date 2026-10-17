@@ -40,7 +40,7 @@ const rows: ReadonlyArray<TapeRow> = [
 	row('a.jsonl', {}),
 	row('b.jsonl', {
 		harness: 'codex',
-		agent: 'Codex CLI',
+		agent: 'ChatGPT / Codex',
 		shelf: 'Work laptop',
 		project: 'boombox-api',
 		title: 'Fix the flaky invoice test',

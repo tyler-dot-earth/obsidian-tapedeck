@@ -21,7 +21,7 @@ Run **⏏️ Import session file** and paste the full path to one of these:
 | File                                                         | Source                   |
 | ------------------------------------------------------------ | ------------------------ |
 | `fixtures/claude-code/-home-sample-projects-mixtape/*.jsonl` | Claude Code              |
-| `fixtures/codex/2026/01/15/rollout-*.jsonl`                  | Codex CLI                |
+| `fixtures/codex/2026/01/15/rollout-*.jsonl`                  | ChatGPT / Codex          |
 | `fixtures/pi/--home-sample-projects-mixtape--/*.jsonl`       | Pi                       |
 | `fixtures/images/*.jsonl`                                    | Each source, with images |
 

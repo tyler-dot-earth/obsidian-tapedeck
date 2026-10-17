@@ -3,7 +3,7 @@
 	"name": "Tapedeck",
 	"version": "0.1.0",
 	"minAppVersion": "1.13.0",
-	"description": "Import agent transcripts (Claude Code, Codex CLI, Pi) as readable notes.",
+	"description": "Import agent transcripts (Claude Code, ChatGPT / Codex, Pi) as readable notes.",
 	"author": "tyler.earth",
 	"authorUrl": "https://tyler.earth/",
 	"isDesktopOnly": true,

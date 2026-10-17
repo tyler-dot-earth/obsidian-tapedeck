@@ -341,7 +341,7 @@ const DetectLine = Schema.Struct({
 /** Codex CLI `~/.codex/sessions/YYYY/MM/DD/rollout-*.jsonl`. */
 export const codexSource: TranscriptSource = {
 	harness: 'codex',
-	label: 'Codex CLI',
+	label: 'ChatGPT / Codex',
 	emoji: '🔷',
 	defaultDirectory: ['.codex', 'sessions'],
 	matchesFile: (relativePath) => /(^|\/)rollout-[^/]+\.jsonl$/.test(relativePath),
