@@ -8,10 +8,11 @@ import { Effect } from 'effect'
 import { listSessionFiles, type SessionFile } from '#/src/tapedeck-session-files'
 import { defaultTapeShelves } from '#/src/tapedeck-shelves'
 import { TapeInfoCache, tapeRow } from '#/src/tapedeck-tape-info'
+import type { ImportedNote } from '#/src/tapedeck-tape-list'
 
 let home = ''
 
-const nothingImported = (): boolean => false
+const nothingImported = (): undefined => undefined
 
 const files = (): Promise<ReadonlyArray<SessionFile>> =>
 	Effect.runPromise(listSessionFiles(defaultTapeShelves, home))
@@ -98,15 +99,24 @@ describe('tape rows', () => {
 		const claude = await byHarness('claude-code')
 		const info = await new TapeInfoCache().read(claude)
 
-		const row = tapeRow(
-			claude,
-			info,
-			(harness, sessionId) =>
-				harness === 'claude-code' && sessionId === '11111111-2222-4333-8444-555555555555',
-			home,
-		)
+		const importedAt = new Date(claude.modifiedAt.getTime() + 1000)
 
-		assert.isTrue(row.imported)
+		const lookup = (harness: string, sessionId: string): ImportedNote | undefined =>
+			harness === 'claude-code' && sessionId === '11111111-2222-4333-8444-555555555555'
+				? { path: 'Transcripts/demo.md', importedAt }
+				: undefined
+
+		const row = tapeRow(claude, info, lookup, home)
+		assert.strictEqual(row.state, 'imported')
+		assert.strictEqual(row.notePath, 'Transcripts/demo.md')
+		assert.strictEqual(tapeRow(claude, undefined, lookup, home).state, 'imported')
+	})
+
+	it('knows the session id from the file name before reading', async () => {
+		const pi = await byHarness('pi')
+		const row = tapeRow(pi, undefined, nothingImported, home)
+		assert.strictEqual(row.sessionId, '33333333-4444-4555-8666-777777777777')
+		assert.strictEqual(row.state, 'new')
 	})
 })
 

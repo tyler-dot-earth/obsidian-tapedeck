@@ -5,14 +5,17 @@ import {
 	allShownSelected,
 	clearShown,
 	filterTapes,
+	type ImportedNote,
 	importButtonText,
 	moveActive,
 	projectFromCwd,
 	projectFromFolder,
 	selectedTapes,
 	selectShown,
+	sessionIdFromPath,
 	type TapeRow,
 	tapeLabel,
+	tapeState,
 	toggleTape,
 } from '#/src/tapedeck-tape-list'
 
@@ -25,7 +28,9 @@ const row = (path: string, overrides: Partial<TapeRow>): TapeRow => ({
 	modifiedAt: new Date('2026-01-15T09:00:00.000Z'),
 	project: 'demo',
 	title: 'Make the greeting say hello world',
-	imported: false,
+	sessionId: undefined,
+	state: 'new',
+	notePath: undefined,
 	...overrides,
 })
 
@@ -97,7 +102,7 @@ describe('filterTapes', () => {
 			'🟠 2026-01-15 09:00 · demo · Make the greeting say hello world',
 		)
 		assert.strictEqual(
-			tapeLabel(row('d', { project: undefined, title: undefined, imported: true })),
+			tapeLabel(row('d', { project: undefined, title: undefined, state: 'imported' })),
 			'🟠 2026-01-15 09:00 · — · reading… · ⏪ in vault',
 		)
 	})
@@ -156,5 +161,34 @@ describe('mapWithLimit', () => {
 		assert.deepStrictEqual(results, [50, 10, 40, 20, 30])
 		assert.strictEqual(peak, 2)
 		assert.deepStrictEqual(await mapWithLimit([], 4, async (value: number) => value), [])
+	})
+})
+
+const modifiedAt = new Date('2026-01-15T09:00:00.000Z')
+
+const note = (importedAt: string | undefined): ImportedNote => ({
+	path: 'T/x.md',
+	importedAt: importedAt === undefined ? undefined : new Date(importedAt),
+})
+
+describe('tapeState', () => {
+	it('is unknown without a session id and new without a note', () => {
+		assert.strictEqual(tapeState(undefined, modifiedAt, note(undefined)), 'unknown')
+		assert.strictEqual(tapeState('s', modifiedAt, undefined), 'new')
+	})
+
+	it('is changed only when the file moved on after the import', () => {
+		assert.strictEqual(tapeState('s', modifiedAt, note('2026-01-15T10:00:00.000Z')), 'imported')
+		assert.strictEqual(tapeState('s', modifiedAt, note('2026-01-15T08:59:30.000Z')), 'imported')
+		assert.strictEqual(tapeState('s', modifiedAt, note('2026-01-15T08:00:00.000Z')), 'changed')
+		assert.strictEqual(tapeState('s', modifiedAt, note(undefined)), 'imported')
+	})
+
+	it('reads the session id from each harness file name', () => {
+		const id = '11111111-2222-4333-8444-555555555555'
+		assert.strictEqual(sessionIdFromPath(`/p/-home-x/${id}.jsonl`), id)
+		assert.strictEqual(sessionIdFromPath(`/p/2026/rollout-2026-01-15T10-00-00-${id}.jsonl`), id)
+		assert.strictEqual(sessionIdFromPath(`/p/--x--/2026-01-15T11-00-00-000Z_${id}.jsonl`), id)
+		assert.isUndefined(sessionIdFromPath('/p/notes.jsonl'))
 	})
 })

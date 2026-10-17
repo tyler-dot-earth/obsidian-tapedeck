@@ -130,7 +130,7 @@ export default class TapedeckPlugin extends Plugin {
 			where,
 			files,
 			cache: this.tapeInfo,
-			imported: this.importer.importedSessions(),
+			notes: this.importer.importedNotes(),
 			onImport: (chosen): void => {
 				const [only] = chosen
 

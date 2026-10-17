@@ -5,12 +5,13 @@ import { Effect, Option, Result, Schema } from 'effect'
 import { type App, normalizePath, TFile } from 'obsidian'
 
 import type { TapedeckParseError } from '#/src/tapedeck-errors'
-import { transcriptFilename } from '#/src/tapedeck-filename'
+import { parseTimestamp, transcriptFilename } from '#/src/tapedeck-filename'
 import { resolveImages } from '#/src/tapedeck-image-import'
 import type { ResolvedTapedeckSettings } from '#/src/tapedeck-plugin-settings'
 import { type PreviousNote, renderTranscriptNote } from '#/src/tapedeck-render'
 import { listSessionFiles, readSessionFile } from '#/src/tapedeck-session-files'
 import { detectSource, sourceFor } from '#/src/tapedeck-sources'
+import type { ImportedNote, NoteLookup } from '#/src/tapedeck-tape-list'
 import type { Harness, Transcript, TranscriptSource } from '#/src/tapedeck-transcript'
 
 /** Frontmatter Tapedeck reads back from notes it wrote. */
@@ -27,6 +28,12 @@ const KeptFrontmatter = Schema.Struct({
 })
 
 type TranscriptFrontmatter = Schema.Schema.Type<typeof TranscriptFrontmatter>
+
+/** Import times Tapedeck writes, as local `YYYY-MM-DDTHH:mm:ss`. */
+const ImportTimes = Schema.Struct({
+	created: Schema.optionalKey(Schema.String),
+	updated: Schema.optionalKey(Schema.String),
+})
 
 /** What happened to one session. */
 export interface ImportOutcome {
@@ -62,21 +69,32 @@ export class TapedeckImporter {
 	}
 
 	/**
-	 * Checks whether a session already has a note. Reads every note's frontmatter once, from the
-	 * metadata cache, so the picker can ask about thousands of tapes cheaply.
+	 * Note lookup for the picker and the tape rack. Reads every note's frontmatter once, from the
+	 * metadata cache, so thousands of tapes can be checked cheaply. `updated` (or `created`) is the
+	 * local time of the last import.
 	 */
-	importedSessions(): (harness: Harness, sessionId: string) => boolean {
-		const keys = new Set(
-			this.app.vault.getMarkdownFiles().flatMap((file) => {
-				const frontmatter = this.transcriptFrontmatter(file)
+	importedNotes(): NoteLookup {
+		const notes = new Map<string, ImportedNote>()
 
-				return frontmatter === undefined
-					? []
-					: [`${frontmatter.harness}\u0000${frontmatter.session_id}`]
-			}),
-		)
+		for (const file of this.app.vault.getMarkdownFiles()) {
+			const frontmatter = this.transcriptFrontmatter(file)
 
-		return (harness, sessionId) => keys.has(`${harness}\u0000${sessionId}`)
+			if (frontmatter !== undefined) {
+				notes.set(`${frontmatter.harness}\u0000${frontmatter.session_id.toLowerCase()}`, {
+					path: file.path,
+					importedAt: this.importedAt(file),
+				})
+			}
+		}
+
+		return (harness, sessionId) => notes.get(`${harness}\u0000${sessionId.toLowerCase()}`)
+	}
+
+	private importedAt(file: TFile): Date | undefined {
+		const frontmatter: unknown = this.app.metadataCache.getFileCache(file)?.frontmatter
+		const kept = Option.getOrUndefined(Schema.decodeUnknownOption(ImportTimes)(frontmatter))
+
+		return parseTimestamp(kept?.updated ?? kept?.created)
 	}
 
 	/** Existing note for a session, so imports update instead of duplicating. */

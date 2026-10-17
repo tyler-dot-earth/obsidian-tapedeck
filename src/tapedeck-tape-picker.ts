@@ -9,6 +9,7 @@ import {
 	filterTapes,
 	importButtonText,
 	moveActive,
+	type NoteLookup,
 	selectedTapes,
 	selectShown,
 	type TapeRow,
@@ -16,7 +17,6 @@ import {
 	tapeLabel,
 	toggleTape,
 } from '#/src/tapedeck-tape-list'
-import type { Harness } from '#/src/tapedeck-transcript'
 
 /** Everything the tape picker needs from the plugin. */
 export interface TapePickerInput {
@@ -25,8 +25,8 @@ export interface TapePickerInput {
 	/** Tapes on the shelf, newest first. */
 	readonly files: ReadonlyArray<SessionFile>
 	readonly cache: TapeInfoCache
-	/** Whether the vault already has a note for this session. */
-	readonly imported: (harness: Harness, sessionId: string) => boolean
+	/** The vault's note for a session, if it has one. */
+	readonly notes: NoteLookup
 	readonly onImport: (files: ReadonlyArray<SessionFile>) => void
 }
 
@@ -90,7 +90,7 @@ export class TapePickerModal extends Modal {
 				this.loaded += 1
 			}
 
-			return tapeRow(file, info, input.imported)
+			return tapeRow(file, info, input.notes)
 		})
 	}
 
@@ -165,7 +165,7 @@ export class TapePickerModal extends Modal {
 		const index = this.rowIndex.get(file.path)
 
 		if (index !== undefined) {
-			this.rows[index] = tapeRow(file, info, this.input.imported)
+			this.rows[index] = tapeRow(file, info, this.input.notes)
 		}
 
 		this.loaded += 1

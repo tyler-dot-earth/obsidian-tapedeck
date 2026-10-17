@@ -16,7 +16,68 @@ export interface TapeRow {
 	readonly modifiedAt: Date
 	readonly project: string | undefined
 	readonly title: string | undefined
-	readonly imported: boolean
+	readonly sessionId: string | undefined
+	readonly state: TapeState
+	/** Vault path of the tape's note, when it has one. */
+	readonly notePath: string | undefined
+}
+
+/**
+ * Where a tape stands against the vault: `unknown` until its session id is known, `new` with no
+ * note, `imported` with a note, `changed` when the file was modified after the note was written.
+ */
+export type TapeState = 'unknown' | 'new' | 'imported' | 'changed'
+
+/** A transcript note already in the vault: its path and when it was last imported, if recorded. */
+export interface ImportedNote {
+	readonly path: string
+	readonly importedAt: Date | undefined
+}
+
+/** Finds the note for a session, if there is one. */
+export type NoteLookup = (harness: Harness, sessionId: string) => ImportedNote | undefined
+
+/** Grace period for "changed": the file is often touched just before an import finishes. */
+const changedGraceMs = 60_000
+
+/** State of a tape from its session id, file mtime, and note. */
+export const tapeState = (
+	sessionId: string | undefined,
+	modifiedAt: Date,
+	note: ImportedNote | undefined,
+): TapeState => {
+	if (sessionId === undefined) {
+		return 'unknown'
+	}
+
+	if (note === undefined) {
+		return 'new'
+	}
+
+	return note.importedAt !== undefined &&
+		modifiedAt.getTime() > note.importedAt.getTime() + changedGraceMs
+		? 'changed'
+		: 'imported'
+}
+
+const uuidAtEnd = /([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\.jsonl$/i
+
+/**
+ * Session id from a file name, before the file is read: all three harnesses end the name with it
+ * (`<id>.jsonl`, `rollout-<time>-<id>.jsonl`, `<time>_<id>.jsonl`).
+ */
+export const sessionIdFromPath = (path: string): string | undefined =>
+	uuidAtEnd.exec(path)?.[1]?.toLowerCase()
+
+/** Whether the vault already has a note for the tape. */
+export const isInVault = (row: TapeRow): boolean =>
+	row.state === 'imported' || row.state === 'changed'
+
+const stateMarks: Record<TapeState, string> = {
+	unknown: '',
+	new: '',
+	imported: ' · ⏪ in vault',
+	changed: ' · ⏩ changed since import',
 }
 
 /** Last folder of a working directory, for either separator. `undefined` for an empty path. */
@@ -80,11 +141,11 @@ export const filterTapes = (rows: ReadonlyArray<TapeRow>, query: string): Array<
 	})
 }
 
-/** One-line label for a row: emoji, date, project, first prompt, and a mark if already imported. */
+/** One-line label for a row: emoji, date, project, first prompt, and a mark if in the vault. */
 export const tapeLabel = (row: TapeRow): string => {
 	const parts = [`${row.emoji} ${tapeWhen(row)}`, row.project ?? '—', row.title ?? 'reading…']
 
-	return `${parts.join(' · ')}${row.imported ? ' · ⏪ in vault' : ''}`
+	return `${parts.join(' · ')}${stateMarks[row.state]}`
 }
 
 /** Selected tape paths. Paths survive filtering, so a selection is kept while you search. */

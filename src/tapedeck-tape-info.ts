@@ -5,7 +5,15 @@ import { Result } from 'effect'
 
 import { readHead, type SessionFile } from '#/src/tapedeck-session-files'
 import { shelfName, shelfRoot } from '#/src/tapedeck-shelves'
-import { projectFromCwd, projectFromFolder, type TapeRow } from '#/src/tapedeck-tape-list'
+import {
+	type ImportedNote,
+	type NoteLookup,
+	projectFromCwd,
+	projectFromFolder,
+	sessionIdFromPath,
+	type TapeRow,
+	tapeState,
+} from '#/src/tapedeck-tape-list'
 
 /** What the picker reads from the start of a tape. */
 export interface TapeInfo {
@@ -93,20 +101,34 @@ const projectFromLayout = (file: SessionFile, home: string): string | undefined 
 	return folder === '' || folder === '..' ? undefined : projectFromFolder(basename(folder), home)
 }
 
+const noteFor = (
+	file: SessionFile,
+	sessionId: string | undefined,
+	notes: NoteLookup,
+): ImportedNote | undefined =>
+	sessionId === undefined ? undefined : notes(file.source.harness, sessionId)
+
 /** Picker row for a tape, filled from cached info when there is some. */
 export const tapeRow = (
 	file: SessionFile,
 	info: TapeInfo | undefined,
-	imported: (harness: SessionFile['source']['harness'], sessionId: string) => boolean,
+	notes: NoteLookup,
 	home: string = homedir(),
-): TapeRow => ({
-	path: file.path,
-	harness: file.source.harness,
-	emoji: file.source.emoji,
-	agent: file.source.label,
-	shelf: shelfName(file.shelf),
-	modifiedAt: file.modifiedAt,
-	project: projectFromCwd(info?.cwd) ?? projectFromLayout(file, home),
-	title: info?.title,
-	imported: info?.sessionId !== undefined && imported(file.source.harness, info.sessionId),
-})
+): TapeRow => {
+	const sessionId = info?.sessionId ?? sessionIdFromPath(file.path)
+	const note = noteFor(file, sessionId, notes)
+
+	return {
+		path: file.path,
+		harness: file.source.harness,
+		emoji: file.source.emoji,
+		agent: file.source.label,
+		shelf: shelfName(file.shelf),
+		modifiedAt: file.modifiedAt,
+		project: projectFromCwd(info?.cwd) ?? projectFromLayout(file, home),
+		title: info?.title,
+		sessionId,
+		state: tapeState(sessionId, file.modifiedAt, note),
+		notePath: note?.path,
+	}
+}
