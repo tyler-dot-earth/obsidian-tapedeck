@@ -23,7 +23,7 @@ import {
 	type SessionFile,
 } from '#/src/tapedeck-session-files'
 import { detectSource, sourceFor } from '#/src/tapedeck-sources'
-import type { ImportedNote, NoteLookup } from '#/src/tapedeck-tape-list'
+import type { NoteLookup } from '#/src/tapedeck-tape-list'
 import { clampTitle, titleFields } from '#/src/tapedeck-tape-title'
 import type { Harness, Transcript, TranscriptSource } from '#/src/tapedeck-transcript'
 
@@ -83,11 +83,16 @@ const parseOrThrow = (
 	return parsed.success
 }
 
+/** Index key for a note: harness plus lower-cased session id. */
+const noteKey = (harness: Harness, sessionId: string): string =>
+	`${harness}\u0000${sessionId.toLowerCase()}`
+
 /** Vault side of an import: find, create, or update transcript notes. */
 export class TapedeckImporter {
 	private readonly app: App
 	private readonly settings: () => ResolvedTapedeckSettings
 	private readonly threadNames: CodexThreadNames
+	private noteIndex: Map<string, TFile> | undefined
 
 	constructor(
 		app: App,
@@ -107,25 +112,46 @@ export class TapedeckImporter {
 	}
 
 	/**
-	 * Note lookup for the picker and the tape rack. Reads every note's frontmatter once, from the
-	 * metadata cache, so thousands of tapes can be checked cheaply. `updated` (or `created`) is the
-	 * local time of the last import.
+	 * Note lookup for the picker and the tape rack, from the session index. `updated` (or `created`)
+	 * is the local time of the last import.
 	 */
 	importedNotes(): NoteLookup {
-		const notes = new Map<string, ImportedNote>()
+		const index = this.notesBySession()
+
+		return (harness, sessionId) => {
+			const file = index.get(noteKey(harness, sessionId))
+
+			return file === undefined ? undefined : { path: file.path, importedAt: this.importedAt(file) }
+		}
+	}
+
+	/** Drops the session index; the plugin calls this when notes change, are renamed, or deleted. */
+	forgetNotes(): void {
+		this.noteIndex = undefined
+	}
+
+	/**
+	 * Tapedeck notes by harness and session id. Built from the metadata cache on first use and kept
+	 * until a note changes, so imports do not scan every markdown file each time.
+	 */
+	private notesBySession(): Map<string, TFile> {
+		if (this.noteIndex !== undefined) {
+			return this.noteIndex
+		}
+
+		const index = new Map<string, TFile>()
 
 		for (const file of this.app.vault.getMarkdownFiles()) {
 			const frontmatter = this.transcriptFrontmatter(file)
 
 			if (frontmatter !== undefined) {
-				notes.set(`${frontmatter.harness}\u0000${frontmatter.session_id.toLowerCase()}`, {
-					path: file.path,
-					importedAt: this.importedAt(file),
-				})
+				index.set(noteKey(frontmatter.harness, frontmatter.session_id), file)
 			}
 		}
 
-		return (harness, sessionId) => notes.get(`${harness}\u0000${sessionId.toLowerCase()}`)
+		this.noteIndex = index
+
+		return index
 	}
 
 	private importedAt(file: TFile): Date | undefined {
@@ -137,11 +163,12 @@ export class TapedeckImporter {
 
 	/** Existing note for a session, so imports update instead of duplicating. */
 	findNote(harness: Harness, sessionId: string): TFile | undefined {
-		return this.app.vault.getMarkdownFiles().find((file) => {
-			const frontmatter = this.transcriptFrontmatter(file)
+		const file = this.notesBySession().get(noteKey(harness, sessionId))
+		const frontmatter = file === undefined ? undefined : this.transcriptFrontmatter(file)
 
-			return frontmatter?.session_id === sessionId && frontmatter.harness === harness
-		})
+		return frontmatter?.harness === harness && frontmatter.session_id === sessionId
+			? file
+			: undefined
 	}
 
 	/**
@@ -208,12 +235,13 @@ export class TapedeckImporter {
 		)
 
 		if (existing !== undefined) {
-			await this.app.vault.modify(existing, markdown)
+			await this.app.vault.process(existing, () => markdown)
 
 			return { file: existing, transcript, updated: true }
 		}
 
 		const file = await this.app.vault.create(notePath, markdown)
+		this.notesBySession().set(noteKey(transcript.harness, transcript.sessionId), file)
 
 		return { file, transcript, updated: false }
 	}

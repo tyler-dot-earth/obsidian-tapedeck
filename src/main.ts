@@ -79,9 +79,21 @@ export default class TapedeckPlugin extends Plugin {
 		this.addSettingTab(new TapedeckSettingTab(this.app, this, this))
 		this.registerCommands()
 		this.registerTapeRack()
+		this.watchNotes()
 		this.app.workspace.onLayoutReady(() => {
 			this.startAutoImport()
 		})
+	}
+
+	/** Keeps the importer's session index in step with the vault. */
+	private watchNotes(): void {
+		const forget = (): void => {
+			this.importer.forgetNotes()
+		}
+
+		this.registerEvent(this.app.metadataCache.on('changed', forget))
+		this.registerEvent(this.app.vault.on('delete', forget))
+		this.registerEvent(this.app.vault.on('rename', forget))
 	}
 
 	/**
