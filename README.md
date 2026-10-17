@@ -1,6 +1,6 @@
-# Tapedeck 📼 coding agent transcripts for Obsidian
+# Tapedeck 📼 agent transcripts for Obsidian
 
-Every coding agent session is a tape. Pop a Claude Code, Codex CLI, or Pi session into the deck and get a note you can actually read, labelled and ready to rewind.
+Every agent session is a tape. Pop a Claude Code, Codex CLI, or Pi session into the deck and get a note you can actually read, labelled and ready to rewind.
 
 ## Use
 

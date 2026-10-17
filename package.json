@@ -2,7 +2,7 @@
 	"name": "obsidian-tapedeck",
 	"version": "0.1.0",
 	"private": true,
-	"description": "Import coding agent transcripts into Obsidian",
+	"description": "Import agent transcripts into Obsidian",
 	"license": "MIT",
 	"repository": {
 		"type": "git",

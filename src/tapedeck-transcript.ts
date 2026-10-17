@@ -3,7 +3,7 @@ import type { Result } from 'effect'
 import type { TapedeckParseError } from '#/src/tapedeck-errors'
 import type { TitleSource } from '#/src/tapedeck-tape-title'
 
-/** Coding agent that wrote the session file. */
+/** Agent that wrote the session file. */
 export type Harness = 'claude-code' | 'codex' | 'pi'
 
 /** Plain prose from the user or the assistant. */

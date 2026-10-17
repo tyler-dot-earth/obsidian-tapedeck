@@ -1,6 +1,6 @@
 # Tapedeck
 
-Obsidian plugin. Imports coding agent transcripts (Claude Code, Codex CLI, Pi) as markdown notes. Plugin id `tapedeck`. Desktop only (reads session files with `node:fs`). Theme is VHS tape decks: a session is a tape. 📼 main, tape shelves and the tape rack, ⏏️ import, ⏪ re-import, ⏯️ batch imports in progress, ⏰ auto-import, 📺 sources and pickers, 🏷️ notes and frontmatter, ✂️ redaction, ⏹️ errors.
+Obsidian plugin. Imports agent transcripts (Claude Code, Codex CLI, Pi) as markdown notes. Plugin id `tapedeck`. Desktop only (reads session files with `node:fs`). Theme is VHS tape decks: a session is a tape. 📼 main, tape shelves and the tape rack, ⏏️ import, ⏪ re-import, ⏯️ batch imports in progress, ⏰ auto-import, 📺 sources and pickers, 🏷️ notes and frontmatter, ✂️ redaction, ⏹️ errors.
 
 Each harness is a `TranscriptSource` (`src/tapedeck-transcript.ts`): `matchesFile`, `detect`, `parse`, `resumeCommand`. Parsers decode jsonl lines with Effect `Schema` and produce a harness-neutral `Transcript` of turns and blocks (`text`, `thinking`, `note`, `tool`). Tool results are paired with calls by id in a first pass. `src/tapedeck-render.ts` turns a transcript into a note; redaction runs over the whole rendered note. `src/tapedeck-importer.ts` finds an existing note by `harness` + `session_id` frontmatter and updates it instead of creating a duplicate.
 
