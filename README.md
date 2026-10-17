@@ -6,21 +6,44 @@ Every coding agent session is a tape. Pop a Claude Code, Codex CLI, or Pi sessio
 
 Requires Obsidian 1.13.0 or newer, on desktop.
 
-1. Run **⏏️ Import session file** and paste a path or choose a `.jsonl` file. Tapedeck works out which agent wrote it.
-2. Or run **📼 Import recent sessions**, pick a source (or all of them), then pick a tape. The first row imports every listed session.
+1. Run **📼 Import from tape shelves**, pick **All enabled shelves** or one shelf, then pick a tape. The first row imports every listed tape. The last shelf row, **⏏️ One-off file…**, opens the file picker below.
+2. Or run **⏏️ Import session file** and paste a path or choose a `.jsonl` file. Tapedeck works out which agent wrote it.
 3. In a transcript note, run **⏪ Re-import current transcript** to pull the latest version of that session.
 
 Importing a session that already has a note updates that note. It finds it by `session_id`, so you never get duplicates. Re-imports keep `created` and whatever you typed into `project`, and add `updated`.
 
+## Tape shelves
+
+A tape shelf is a saved folder Tapedeck imports from, so you never have to pick a path again. Set them up under **📼 Tape shelves** in settings. Each shelf has:
+
+- **Folder**: where the `.jsonl` files live. `~` means your home folder on every OS (`%USERPROFILE%` on Windows), and is expanded only when Tapedeck reads the folder, so the same settings work on another machine.
+- **Label**: optional. Shown instead of the folder in the picker.
+- **Agent**: Claude Code, Codex CLI, Pi, or Auto-detect. Auto-detect reads the first lines of each file. It takes files laid out the way their agent writes them, or loose in the shelf folder.
+- **On/off toggle**: only enabled shelves count for **All enabled shelves**. You can still pick a disabled one directly.
+
+Add shelves with **+**, edit with the pencil, drag to reorder, delete with the bin. A shelf whose folder does not exist is marked _folder not found_ in settings and _unavailable_ in the picker, and is skipped without an error.
+
+New installs start with one shelf per agent at its default folder:
+
+| Shelf       | Folder                 |
+| ----------- | ---------------------- |
+| Claude Code | `~/.claude/projects`   |
+| Codex CLI   | `~/.codex/sessions`    |
+| Pi          | `~/.pi/agent/sessions` |
+
+Pi's default comes from `getSessionsDir()` in [pi's `config.ts`](https://github.com/earendil-works/pi/blob/main/packages/coding-agent/src/config.ts) and its [sessions doc](https://github.com/earendil-works/pi/blob/main/packages/coding-agent/docs/sessions.md). If you moved it with `--session-dir`, `PI_CODING_AGENT_SESSION_DIR`, or pi's `sessionDir` setting, edit the Pi shelf to match.
+
+**Restore default shelves** puts those three back and replaces your list. Upgrading from a version with one folder setting per agent keeps any folder you had set on that agent's shelf.
+
 ## Sources
 
-| Source      | Where it looks                                     | Resume command                     |
+| Source      | Default layout                                     | Resume command                     |
 | ----------- | -------------------------------------------------- | ---------------------------------- |
 | Claude Code | `~/.claude/projects/<project>/<session-id>.jsonl`  | `cd <cwd> && claude --resume <id>` |
 | Codex CLI   | `~/.codex/sessions/YYYY/MM/DD/rollout-*.jsonl`     | `codex resume <id>`                |
 | Pi          | `~/.pi/agent/sessions/--<cwd>--/<time>_<id>.jsonl` | `cd <cwd> && pi --session <id>`    |
 
-On Windows, `~` is `%USERPROFILE%`. Point any source somewhere else in settings.
+On Windows, `~` is `%USERPROFILE%`. Point Tapedeck somewhere else with a tape shelf.
 
 Each source is one parser behind the `TranscriptSource` interface in `src/tapedeck-transcript.ts`. Adding a harness means writing one more and listing it in `src/tapedeck-sources.ts`.
 
@@ -58,7 +81,7 @@ Tool calls are callouts, folded by default. Input is a JSON block, edits and pat
 
 ## Settings
 
-- **📺 Sources**: a folder per agent (empty means the OS default) and how many recent tapes to list.
+- **📼 Tape shelves**: saved folders to import from (see above), restore defaults, and how many recent tapes to list.
 - **🏷️ Notes**: import folder, filename pattern (`{date} {time} {harness} {session} {title}`), raw or summary style, fold tool calls, tool output (full, truncated, none), truncate length, include thinking.
 - **✂️ Redaction**: home folder as `~`, and mask secrets (API keys, GitHub and Slack tokens, AWS keys, JWTs, bearer headers, private keys, `key=value` secrets). These are simple patterns. Read a note before you share it.
 

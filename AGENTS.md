@@ -9,6 +9,7 @@ Each harness is a `TranscriptSource` (`src/tapedeck-transcript.ts`): `matchesFil
 - `src/main.ts` is the Plugin host: onload/onunload, settings tab, commands
 - Package imports: `#/src/tapedeck-plugin-settings`
 - Sources: `src/tapedeck-source-claude-code.ts`, `src/tapedeck-source-codex.ts`, `src/tapedeck-source-pi.ts`, registry in `src/tapedeck-sources.ts`
+- Tape shelves (saved source folders, never called "bookmarks"): model and `~` expansion in `src/tapedeck-shelves.ts`, listing in `src/tapedeck-session-files.ts`, editor and picker in `src/tapedeck-shelf-modals.ts`. A missing `tapeShelves` key means the defaults; old `*Directory` keys migrate onto the default shelves.
 - `fixtures/` holds synthetic sessions only. Never commit a real session file.
 - `effect-obsidian` is `@tyler.earth/effect-obsidian` on npm
 - Release artifacts at repo root: `main.js`, `manifest.json`, `styles.css`
